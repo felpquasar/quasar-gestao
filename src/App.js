@@ -16,7 +16,11 @@ import Spinner from "./components/ui/Spinner";
 import { SkeletonDashboard } from "./components/ui/Skeleton";
 import Icon from "./components/ui/Icon";
 import GlobalSearch from "./components/ui/GlobalSearch";
+import { Gate } from "./components/ui/Gate";
 import { useMobile } from "./hooks/useMobile";
+import { usePlano } from "./hooks/usePlano";
+import { useTermos } from "./hooks/useTermos";
+import { can } from "./lib/planos";
 
 const LOGO = "/logo.png";
 
@@ -47,9 +51,12 @@ export default function App() {
   const [aba, setAba] = useState("dashboard");
   const [sidebar, setSidebar] = useState(true);
   const [showOnb, setShowOnb] = useState(false); // wizard de onboarding (tenant novo, sem produtos)
+  const [onbDone, setOnbDone] = useState(true);  // flag server-side; começa true p/ não piscar antes de checar
   const { produtos, setProdutos, clientes, setClientes, vendas, setVendas, movimentos, setMovimentos, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, pedidosCompra, setPedidosCompra, despesas, setDespesas, loading, toast, notify, load } = useStore();
 
   const isMobile = useMobile();
+  const { plano } = usePlano(tenantId);
+  const { t } = useTermos(tenantId);
 
   const qtdVencidas = contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today()).length
     + contasPagar.filter(cp => cp.status !== "pago" && cp.data_vencimento < today()).length;
@@ -68,36 +75,50 @@ export default function App() {
     return () => { ativo = false; };
   }, [session]);
 
+  // Lê a flag de onboarding do tenant (server-side, cruza dispositivos).
+  useEffect(() => {
+    if (!tenantId) return;
+    let ativo = true;
+    supabase.from("tenants").select("onboarding_done").eq("id", tenantId).single()
+      .then(({ data }) => { if (ativo) setOnbDone(data?.onboarding_done ?? false); });
+    return () => { ativo = false; };
+  }, [tenantId]);
+
   const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); setTenantId(undefined); };
 
   const handleTenantReady = (id) => { setTenantId(id); load(); };
 
-  // Mostra o wizard de onboarding quando o tenant está pronto, dados carregados
-  // e ainda não há produtos (e não foi dispensado antes). Deps sem `produtos`
+  // Mostra o wizard de onboarding quando o tenant está pronto, dados carregados,
+  // ainda não há produtos e o onboarding não foi concluído antes (flag no tenant,
+  // não localStorage — assim não reaparece em outro dispositivo). Deps sem `produtos`
   // de propósito: depois de importar, o wizard não some sozinho — fecha no clique.
   useEffect(() => {
-    if (tenantId && !loading && produtos.length === 0
-      && localStorage.getItem(`quasar_onb_${tenantId}`) !== "1") {
+    if (tenantId && !loading && !onbDone && produtos.length === 0) {
       setShowOnb(true);
     }
-  }, [tenantId, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tenantId, loading, onbDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fecharOnboarding = () => {
-    if (tenantId) localStorage.setItem(`quasar_onb_${tenantId}`, "1");
+  const fecharOnboarding = async () => {
     setShowOnb(false);
+    setOnbDone(true);
+    try { await supabase.rpc("marcar_onboarding_done"); }
+    catch (e) { console.error("Falha ao marcar onboarding:", e); }
   };
 
   const onProdutosImportados = (novos) =>
     setProdutos(prev => [...prev, ...novos].sort((a, b) => a.nome.localeCompare(b.nome)));
 
+  // `feature` casa com o mapa CAPS (src/lib/planos.js). Abas de plano superior
+  // somem do menu pra quem não tem (can() => false), mas o render ainda usa
+  // <Gate> como segunda linha de defesa.
   const nav = [
-    { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-    { id: "estoque", label: "Estoque", icon: "box" },
-    { id: "clientes", label: "Clientes", icon: "users" },
-    { id: "vendas", label: "Vendas", icon: "cart" },
-    { id: "financeiro", label: "Financeiro", icon: "money", badge: qtdVencidas },
-    { id: "relatorios", label: "Relatórios", icon: "chart" },
-  ];
+    { id: "dashboard", label: "Dashboard", icon: "dashboard", feature: "dashboard" },
+    { id: "estoque", label: "Estoque", icon: "box", feature: "estoque" },
+    { id: "clientes", label: t("clientes"), icon: "users", feature: "clientes" },
+    { id: "vendas", label: "Vendas", icon: "cart", feature: "vendas" },
+    { id: "financeiro", label: "Financeiro", icon: "money", badge: qtdVencidas, feature: "financeiro" },
+    { id: "relatorios", label: "Relatórios", icon: "chart", feature: "relatorios" },
+  ].filter(n => can(plano, n.feature));
 
   if (session === undefined) return (
     <><style>{styles}</style>
@@ -187,12 +208,12 @@ export default function App() {
           {loading
             ? <SkeletonDashboard />
             : <div key={aba} className="fade-in">
-              {aba === "dashboard" && <Dashboard produtos={produtos} clientes={clientes} vendas={vendas} movimentos={movimentos} contasReceber={contasReceber} contasPagar={contasPagar} despesas={despesas} reload={load} onNavigate={setAba} />}
+              {aba === "dashboard" && <Dashboard t={t} produtos={produtos} clientes={clientes} vendas={vendas} movimentos={movimentos} contasReceber={contasReceber} contasPagar={contasPagar} despesas={despesas} reload={load} onNavigate={setAba} />}
               {aba === "estoque" && <Estoque produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} fornecedores={fornecedores} setContasPagar={setContasPagar} pedidosCompra={pedidosCompra} setPedidosCompra={setPedidosCompra} setDespesas={setDespesas} notify={notify} />}
-              {aba === "clientes" && <Clientes clientes={clientes} setClientes={setClientes} vendas={vendas} produtos={produtos} contasReceber={contasReceber} notify={notify} />}
-              {aba === "vendas" && <Vendas vendas={vendas} setVendas={setVendas} clientes={clientes} produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} setContasReceber={setContasReceber} notify={notify} />}
-              {aba === "financeiro" && <Financeiro contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} setFornecedores={setFornecedores} clientes={clientes} vendas={vendas} despesas={despesas} setDespesas={setDespesas} notify={notify} />}
-              {aba === "relatorios" && <Relatorios vendas={vendas} clientes={clientes} produtos={produtos} contasReceber={contasReceber} contasPagar={contasPagar} />}
+              {aba === "clientes" && <Clientes t={t} clientes={clientes} setClientes={setClientes} vendas={vendas} produtos={produtos} contasReceber={contasReceber} notify={notify} />}
+              {aba === "vendas" && <Vendas t={t} vendas={vendas} setVendas={setVendas} clientes={clientes} produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} setContasReceber={setContasReceber} notify={notify} />}
+              {aba === "financeiro" && <Gate plano={plano} feature="financeiro" titulo="Financeiro"><Financeiro contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} setFornecedores={setFornecedores} clientes={clientes} vendas={vendas} despesas={despesas} setDespesas={setDespesas} notify={notify} /></Gate>}
+              {aba === "relatorios" && <Gate plano={plano} feature="relatorios" titulo="Relatórios"><Relatorios vendas={vendas} clientes={clientes} produtos={produtos} contasReceber={contasReceber} contasPagar={contasPagar} /></Gate>}
             </div>
           }
         </main>
