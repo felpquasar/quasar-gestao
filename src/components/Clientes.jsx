@@ -25,7 +25,7 @@ const Badge = ({ children, color }) => (
 const TIPOS = ["Barbearia", "Salão", "Distribuidor", "Outros"];
 const tipoCor = { Barbearia: "#ffbf00", Salão: "#b86fcf", Distribuidor: "#6b9fd4", Outros: "#4caf82" };
 
-const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, notify }) => {
+const Clientes = ({ t, clientes, setClientes, vendas, produtos, contasReceber, pacotesCliente = [], notify }) => {
   const isMobile = useMobile();
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -77,7 +77,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
         }
       }
     }
-    setModal(false); notify(editando ? "Cliente atualizado." : "Cliente cadastrado.");
+    setModal(false); notify(`${t("cliente")} ${editando ? "atualizado." : "cadastrado."}`);
   };
 
   const usarDesconto = (c) => {
@@ -90,16 +90,16 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
   };
 
   const excluir = (id) => {
-    setConfirmState({ msg: "Excluir este cliente?", onConfirm: async () => {
+    setConfirmState({ msg: `Excluir este ${t("cliente").toLowerCase()}?`, onConfirm: async () => {
       const { error } = await supabase.from("clientes").delete().eq("id", id);
       if (error) { notify("Erro ao excluir", "error"); return; }
       setClientes(prev => prev.filter(c => c.id !== id));
       if (selId === id) setSelId(null);
-      notify("Cliente excluído.");
+      notify(`${t("cliente")} excluído.`);
     }});
   };
 
-  const metricas = (cid) => { const vs = vendas.filter(v => v.cliente_id === cid); const t = vs.reduce((a, v) => a + Number(v.total), 0); return { total: t, pedidos: vs.length, ticket: vs.length > 0 ? t / vs.length : 0 }; };
+  const metricas = (cid) => { const vs = vendas.filter(v => v.cliente_id === cid); const tot = vs.reduce((a, v) => a + Number(v.total), 0); return { total: tot, pedidos: vs.length, ticket: vs.length > 0 ? tot / vs.length : 0 }; };
   const vcli = (cid) => vendas.filter(v => v.cliente_id === cid).sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   const statusCor = { pago: "#4caf82", pendente: "#e8a020", cancelado: "#e05a5a" };
 
@@ -138,7 +138,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
         <input placeholder="Buscar nome ou cidade..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inp, flex: 1, minWidth: 140, padding: "8px 10px", fontSize: ".82rem" }} />
         <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} style={{ ...inp, width: "auto", padding: "8px 10px", fontSize: ".78rem" }}>
           <option value="todos">Todos os tipos</option>
-          {TIPOS.map(t => <option key={t}>{t}</option>)}
+          {TIPOS.map(tp => <option key={tp}>{tp}</option>)}
         </select>
       </div>
       <div style={{ padding: "8px 14px", borderBottom: "1px solid #1c1c1c", display: "flex", alignItems: "center", gap: 4 }}>
@@ -148,7 +148,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
         <span style={{ marginLeft: "auto", fontSize: ".7rem", color: "#444", fontFamily: "'DM Mono',monospace" }}>{lista.length}</span>
       </div>
       <div style={{ overflowY: "auto", flex: 1 }}>
-        {lista.length === 0 && <EmptyState iconName="users" title="Nenhum cliente encontrado" subtitle={filtro ? `Sem resultados para "${filtro}"` : "Cadastre o primeiro cliente"} />}
+        {lista.length === 0 && <EmptyState iconName="users" title={`Nenhum ${t("cliente").toLowerCase()} encontrado`} subtitle={filtro ? `Sem resultados para "${filtro}"` : `Cadastre o primeiro ${t("cliente").toLowerCase()}`} />}
         {lista.map(c => {
           const ativo = selId === c.id;
           return (
@@ -178,7 +178,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
   const detalhePane = (() => {
     if (!sel) return (
       <div style={{ ...card, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 320 }}>
-        <EmptyState iconName="users" title="Selecione um cliente" subtitle="Clique em um cliente na lista para ver detalhes, pedidos e crédito" />
+        <EmptyState iconName="users" title={`Selecione um ${t("cliente").toLowerCase()}`} subtitle={`Clique em um ${t("cliente").toLowerCase()} na lista para ver detalhes, pedidos e crédito`} />
       </div>
     );
     const m = metricas(sel.id);
@@ -191,6 +191,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
     const inadim = inadimplente(sel.id);
     const wa = waLink(sel.telefone);
     const pedidos = vcli(sel.id);
+    const cartelas = (pacotesCliente || []).filter(pc => pc.cliente_id === sel.id);
 
     return (
       <div style={{ ...card, padding: "1.25rem", minWidth: 0 }}>
@@ -259,6 +260,31 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
           </div>
         )}
 
+        {cartelas.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>{t("pacote")}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {cartelas.map(pc => {
+                const s = pc.sessoes_total - pc.sessoes_usadas;
+                const venc = pc.data_validade && pc.data_validade < today();
+                const esgotada = s <= 0;
+                const pct = pc.sessoes_total > 0 ? (pc.sessoes_usadas / pc.sessoes_total) * 100 : 0;
+                return (
+                  <div key={pc.id} style={{ border: "1px solid #1d1d1d", borderRadius: 10, padding: "10px 12px", background: "#121212", opacity: esgotada || venc ? .55 : 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                      <span style={{ fontSize: ".8rem", color: "#ccc" }}>{pc.pacotes?.nome || "—"}{pc.data_validade && <span style={{ fontSize: ".68rem", color: venc ? "#e05a5a" : "#555" }}> · {venc ? "vencida" : `val. ${pc.data_validade}`}</span>}</span>
+                      <span style={{ fontSize: ".75rem", fontFamily: "'DM Mono',monospace", color: esgotada ? "#e05a5a" : "#4caf82" }}>{pc.sessoes_usadas}/{pc.sessoes_total}</span>
+                    </div>
+                    <div style={{ background: "#1c1c1c", borderRadius: 4, height: 5, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: esgotada ? "#e05a5a" : "#4caf82", transition: "width .3s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Pedidos</div>
         {pedidos.length === 0 && <div style={{ color: "#444", fontSize: ".82rem" }}>Nenhuma venda registrada</div>}
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -302,12 +328,12 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.6rem", color: "#c9a84c", margin: 0 }}>Clientes</h2>
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.6rem", color: "#c9a84c", margin: 0 }}>{t("clientes")}</h2>
           <div style={{ fontSize: ".74rem", color: "#555", marginTop: 2 }}>
             {clientes.length} cadastrado{clientes.length !== 1 ? "s" : ""}{qtdInadim > 0 && <> · <span style={{ color: "#e05a5a" }}>{qtdInadim} inadimplente{qtdInadim > 1 ? "s" : ""}</span></>}
           </div>
         </div>
-        <button style={btn("primary")} onClick={() => abrir()}><Icon name="plus" size={14} /> Novo Cliente</button>
+        <button style={btn("primary")} onClick={() => abrir()}><Icon name="plus" size={14} /> Novo {t("cliente")}</button>
       </div>
 
       {isMobile
@@ -320,7 +346,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
         )}
 
       {modal && (
-        <Modal title={editando ? "Editar Cliente" : "Novo Cliente"} onClose={() => setModal(false)}>
+        <Modal title={`${editando ? "Editar" : "Novo"} ${t("cliente")}`} onClose={() => setModal(false)}>
           <Field label="Nome / Razão Social"><input style={inp} value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} /></Field>
           <Field label="Nome do Contato"><input style={inp} value={form.contato} onChange={e => setForm({ ...form, contato: e.target.value })} /></Field>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "1rem" }}>
@@ -330,7 +356,7 @@ const Clientes = ({ clientes, setClientes, vendas, produtos, contasReceber, noti
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "1rem" }}>
             <Field label="Tipo">
               <select style={inp} value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
-                {TIPOS.map(t => <option key={t}>{t}</option>)}
+                {TIPOS.map(tp => <option key={tp}>{tp}</option>)}
               </select>
             </Field>
             <Field label="Limite de Crédito (R$)">

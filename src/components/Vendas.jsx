@@ -13,7 +13,7 @@ const FORMAS = ["a_vista", "cartao", "pix", "parcelado"];
 const FORMA_LABEL = { a_vista: "À Vista", cartao: "Cartão", pix: "Pix", parcelado: "Parcelado" };
 const PRAZOS = [{ label: "À Vista", dias: 0 }, { label: "30d", dias: 30 }, { label: "60d", dias: 60 }, { label: "90d", dias: 90 }];
 
-const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimentos, setContasReceber, notify }) => {
+const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdutos, setMovimentos, setContasReceber, pacotesCliente = [], setPacotesCliente, notify }) => {
   const isMobile = useMobile();
   const [modal, setModal] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
@@ -70,6 +70,19 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
       return u;
     }));
 
+  // Sessões de pacote consumíveis pelo cliente selecionado (com saldo e não vencidas).
+  const cartelasDisponiveis = useMemo(() => {
+    const cid = Number(form.clienteId);
+    if (!cid) return [];
+    return (pacotesCliente || []).filter(pc =>
+      pc.cliente_id === cid
+      && (pc.sessoes_total - pc.sessoes_usadas) > 0
+      && (!pc.data_validade || pc.data_validade >= today())
+    );
+  }, [form.clienteId, pacotesCliente]);
+
+  const addSessao = () => setItens(p => [...p, { tipo: "sessao", pacoteClienteId: "", quantidade: 1, preco: "" }]);
+
   const addEditItem = () => setEditItens(p => [...p, { produtoId: "", quantidade: 1, preco: "" }]);
   const remEditItem = (i) => setEditItens(p => p.filter((_, idx) => idx !== i));
   const updEditItem = (i, field, val) =>
@@ -95,7 +108,12 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
   const abrirModal = () => { setForm({ clienteId: "", data: today(), status: "pendente", desconto: "", forma: "parcelado", prazo: 30, entrada: "" }); setItens([{ produtoId: "", quantidade: 1, preco: "" }]); setModal(true); };
 
   const salvarVenda = async () => {
-    if (!form.clienteId || itens.some(it => !it.produtoId || !it.quantidade || !it.preco)) { notify("Preencha todos os campos da venda.", "error"); return; }
+    const itensProduto = itens.filter(it => it.tipo !== "sessao");
+    const itensSessao = itens.filter(it => it.tipo === "sessao");
+    if (!form.clienteId) { notify("Selecione o cliente.", "error"); return; }
+    if (itens.length === 0) { notify("Adicione ao menos um item.", "error"); return; }
+    if (itensProduto.some(it => !it.produtoId || !it.quantidade || !it.preco)) { notify("Preencha todos os campos da venda.", "error"); return; }
+    if (itensSessao.some(it => !it.pacoteClienteId)) { notify(`Selecione o ${t("pacote").toLowerCase()} de cada ${t("atendimento").toLowerCase()}.`, "error"); return; }
     setSaving(true);
     try {
       const { data: venda, error: ve } = await supabase.from("vendas").insert({
@@ -105,16 +123,37 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
         ...(form.forma === "parcelado" ? { valor_entrada: Number(form.entrada || 0) } : {}),
       }).select().single();
       if (ve) throw ve;
-      const itensSalvar = itens.map(it => ({ venda_id: venda.id, produto_id: Number(it.produtoId), quantidade: Number(it.quantidade), preco: Number(it.preco) }));
+
+      // Consumo de sessão: baixa atômica via RPC ANTES de gravar o item (§7.3.2).
+      // Se a RPC falhar (sem saldo/vencido), aborta — o item não é registrado.
+      for (const it of itensSessao) {
+        const { error: rpcErr } = await supabase.rpc("consumir_sessao", { p_pacote_cliente: Number(it.pacoteClienteId) });
+        if (rpcErr) throw new Error(rpcErr.message || "Falha ao consumir sessão do pacote.");
+      }
+
+      const itensSalvar = [
+        ...itensProduto.map(it => ({ venda_id: venda.id, produto_id: Number(it.produtoId), quantidade: Number(it.quantidade), preco: Number(it.preco) })),
+        ...itensSessao.map(it => ({ venda_id: venda.id, pacote_cliente_id: Number(it.pacoteClienteId), produto_id: null, quantidade: 1, preco: 0 })),
+      ];
       const { error: ie } = await supabase.from("venda_itens").insert(itensSalvar);
       if (ie) throw ie;
-      for (const it of itens) {
+
+      // Estoque/movimento só para itens de produto (sessão não mexe em estoque).
+      for (const it of itensProduto) {
         const prod = produtos.find(p => p.id === Number(it.produtoId)); if (!prod) continue;
         const novoEstoque = prod.estoque - Number(it.quantidade);
         await supabase.from("produtos").update({ estoque: novoEstoque }).eq("id", prod.id);
         setProdutos(prev => prev.map(p => p.id === prod.id ? { ...p, estoque: novoEstoque } : p));
         await supabase.from("movimentos").insert({ produto_id: prod.id, tipo: "saida", quantidade: Number(it.quantidade), data: form.data, obs: `Venda #${String(venda.id).slice(-4)}` });
       }
+
+      // Atualiza saldo local das cartelas consumidas.
+      if (itensSessao.length && setPacotesCliente) {
+        const contagem = {};
+        itensSessao.forEach(it => { const id = Number(it.pacoteClienteId); contagem[id] = (contagem[id] || 0) + 1; });
+        setPacotesCliente(prev => prev.map(pc => contagem[pc.id] ? { ...pc, sessoes_usadas: pc.sessoes_usadas + contagem[pc.id] } : pc));
+      }
+
       if (form.status === "pendente" && saldoRestante > 0) {
         const vencimento = addDays(form.data, Number(form.prazo));
         const cli = clientes.find(c => c.id === Number(form.clienteId));
@@ -441,9 +480,9 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
       {modal && (
         <Modal title="Registrar Venda" onClose={() => setModal(false)} wide>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "1rem" }}>
-            <Field label="Cliente">
-              <select style={inp} value={form.clienteId} onChange={e => setForm({ ...form, clienteId: e.target.value })}>
-                <option value="">Selecionar cliente...</option>
+            <Field label={t("cliente")}>
+              <select style={inp} value={form.clienteId} onChange={e => { setForm({ ...form, clienteId: e.target.value }); setItens(prev => prev.filter(it => it.tipo !== "sessao")); }}>
+                <option value="">Selecionar {t("cliente").toLowerCase()}...</option>
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </Field>
@@ -487,7 +526,12 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
           <div style={{ borderTop: "1px solid #2a2a2a", paddingTop: "1rem", marginTop: ".5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>
               <span style={{ fontSize: ".75rem", color: "#666", textTransform: "uppercase", letterSpacing: ".05em" }}>Itens da Venda</span>
-              <button style={{ ...btn("ghost"), padding: "4px 10px", fontSize: ".75rem" }} onClick={addItem}>+ Adicionar item</button>
+              <div style={{ display: "flex", gap: 6 }}>
+                {cartelasDisponiveis.length > 0 && (
+                  <button style={{ ...btn("ghost"), padding: "4px 10px", fontSize: ".75rem", color: "#4caf82" }} onClick={addSessao}>+ {t("atendimento")} de {t("pacote").toLowerCase()}</button>
+                )}
+                <button style={{ ...btn("ghost"), padding: "4px 10px", fontSize: ".75rem" }} onClick={addItem}>+ Adicionar item</button>
+              </div>
             </div>
             {!isMobile && (
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 6, marginBottom: 4 }}>
@@ -496,7 +540,17 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
                 ))}
               </div>
             )}
-            {itens.map((it, i) => isMobile ? (
+            {itens.map((it, i) => it.tipo === "sessao" ? (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, padding: "6px 8px", background: "#0d1a14", border: "1px solid #1a4a2a", borderRadius: 6 }}>
+                <span style={{ color: "#4caf82", display: "flex", flexShrink: 0 }}><Icon name="pacote" size={15} /></span>
+                <select style={{ ...inp, flex: 1 }} value={it.pacoteClienteId} onChange={e => updItem(i, "pacoteClienteId", e.target.value)}>
+                  <option value="">Selecionar {t("pacote").toLowerCase()}...</option>
+                  {cartelasDisponiveis.map(pc => <option key={pc.id} value={pc.id}>{(pc.pacotes?.nome || t("pacote"))} — saldo {pc.sessoes_total - pc.sessoes_usadas}</option>)}
+                </select>
+                <span style={{ fontSize: ".75rem", color: "#4caf82", fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>grátis</span>
+                <button style={{ background: "none", border: "none", color: "#e05a5a", cursor: "pointer", padding: "0 4px" }} onClick={() => remItem(i)}><Icon name="x" size={16} /></button>
+              </div>
+            ) : isMobile ? (
               <div key={i} style={{ marginBottom: 10 }}>
                 <select style={{ ...inp, width: "100%", marginBottom: 6 }} value={it.produtoId} onChange={e => updItem(i, "produtoId", e.target.value)}>
                   <option value="">Produto...</option>
@@ -703,10 +757,10 @@ const Vendas = ({ vendas, setVendas, clientes, produtos, setProdutos, setMovimen
             {" · "}{detalhe.data}
             <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 4, background: (statusCor[detalhe.status] || "#555") + "22", color: statusCor[detalhe.status] || "#888", fontSize: ".75rem" }}>{detalhe.status}</span>
           </div>
-          {(detalhe.venda_itens || []).map((it, i) => { const p = produtos.find(pp => pp.id === it.produto_id); return (
+          {(detalhe.venda_itens || []).map((it, i) => { const p = produtos.find(pp => pp.id === it.produto_id); const isSessao = it.pacote_cliente_id != null; return (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: ".6rem 0", borderBottom: "1px solid #1a1a1a" }}>
-              <span style={{ color: "#e0e0e0" }}>{p?.nome ?? "Produto removido"}</span>
-              <span style={{ color: "#888", fontFamily: "'DM Mono',monospace" }}>{it.quantidade}x {fmt(it.preco)} = <b style={{ color: "#ccc" }}>{fmt(it.quantidade * it.preco)}</b></span>
+              <span style={{ color: "#e0e0e0" }}>{isSessao ? <>{t("atendimento")} <span style={{ color: "#4caf82", fontSize: ".78rem" }}>({t("pacote").toLowerCase()})</span></> : (p?.nome ?? "Produto removido")}</span>
+              <span style={{ color: "#888", fontFamily: "'DM Mono',monospace" }}>{isSessao ? "grátis" : <>{it.quantidade}x {fmt(it.preco)} = <b style={{ color: "#ccc" }}>{fmt(it.quantidade * it.preco)}</b></>}</span>
             </div>
           ); })}
           {detalhe.desconto_pct > 0 && (
