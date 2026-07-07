@@ -9,6 +9,7 @@ import Dashboard from "./components/Dashboard";
 import Estoque from "./components/Estoque";
 import Clientes from "./components/Clientes";
 import Vendas from "./components/Vendas";
+import Agenda from "./components/Agenda";
 import Pacotes from "./components/Pacotes";
 import Financeiro from "./components/Financeiro";
 import Relatorios from "./components/Relatorios";
@@ -53,7 +54,7 @@ export default function App() {
   const [sidebar, setSidebar] = useState(true);
   const [showOnb, setShowOnb] = useState(false); // wizard de onboarding (tenant novo, sem produtos)
   const [onbDone, setOnbDone] = useState(true);  // flag server-side; começa true p/ não piscar antes de checar
-  const { produtos, setProdutos, clientes, setClientes, vendas, setVendas, movimentos, setMovimentos, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, pedidosCompra, setPedidosCompra, despesas, setDespesas, pacotes, setPacotes, pacotesCliente, setPacotesCliente, loading, toast, notify, load } = useStore();
+  const { produtos, setProdutos, clientes, setClientes, vendas, setVendas, movimentos, setMovimentos, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, pedidosCompra, setPedidosCompra, despesas, setDespesas, pacotes, setPacotes, pacotesCliente, setPacotesCliente, agendamentos, setAgendamentos, loading, toast, notify, load } = useStore();
 
   const isMobile = useMobile();
   const { plano } = usePlano(tenantId);
@@ -117,6 +118,7 @@ export default function App() {
     { id: "estoque", label: "Estoque", icon: "box", feature: "estoque" },
     { id: "clientes", label: t("clientes"), icon: "users", feature: "clientes" },
     { id: "vendas", label: "Vendas", icon: "cart", feature: "vendas" },
+    { id: "agenda", label: "Agenda", icon: "calendar", feature: "agenda" },
     { id: "pacotes", label: t("pacote"), icon: "pacote", feature: "pacotes" },
     { id: "financeiro", label: "Financeiro", icon: "money", badge: qtdVencidas, feature: "financeiro" },
     { id: "relatorios", label: "Relatórios", icon: "chart", feature: "relatorios" },
@@ -214,6 +216,7 @@ export default function App() {
               {aba === "estoque" && <Estoque produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} fornecedores={fornecedores} setContasPagar={setContasPagar} pedidosCompra={pedidosCompra} setPedidosCompra={setPedidosCompra} setDespesas={setDespesas} notify={notify} />}
               {aba === "clientes" && <Clientes t={t} clientes={clientes} setClientes={setClientes} vendas={vendas} produtos={produtos} contasReceber={contasReceber} pacotesCliente={pacotesCliente} notify={notify} />}
               {aba === "vendas" && <Vendas t={t} vendas={vendas} setVendas={setVendas} clientes={clientes} produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} setContasReceber={setContasReceber} pacotesCliente={pacotesCliente} setPacotesCliente={setPacotesCliente} notify={notify} />}
+              {aba === "agenda" && <Agenda t={t} agendamentos={agendamentos} setAgendamentos={setAgendamentos} clientes={clientes} notify={notify} />}
               {aba === "pacotes" && <Gate plano={plano} feature="pacotes" titulo={t("pacote")}><Pacotes t={t} pacotes={pacotes} setPacotes={setPacotes} pacotesCliente={pacotesCliente} setPacotesCliente={setPacotesCliente} clientes={clientes} setVendas={setVendas} notify={notify} /></Gate>}
               {aba === "financeiro" && <Gate plano={plano} feature="financeiro" titulo="Financeiro"><Financeiro contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} setFornecedores={setFornecedores} clientes={clientes} vendas={vendas} despesas={despesas} setDespesas={setDespesas} notify={notify} /></Gate>}
               {aba === "relatorios" && <Gate plano={plano} feature="relatorios" titulo="Relatórios"><Relatorios vendas={vendas} clientes={clientes} produtos={produtos} contasReceber={contasReceber} contasPagar={contasPagar} /></Gate>}

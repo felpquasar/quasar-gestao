@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { today, addDays } from "../lib/utils";
 
 function useStore() {
   const [produtos, setProdutos] = useState([]);
@@ -13,6 +14,7 @@ function useStore() {
   const [despesas, setDespesas] = useState([]);
   const [pacotes, setPacotes] = useState([]);
   const [pacotesCliente, setPacotesCliente] = useState([]);
+  const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -21,7 +23,7 @@ function useStore() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, c, v, m, cr, cp, fn, pc, de, pk, pkc] = await Promise.all([
+      const [p, c, v, m, cr, cp, fn, pc, de, pk, pkc, ag] = await Promise.all([
         supabase.from("produtos").select("*").order("nome"),
         supabase.from("clientes").select("*").order("nome"),
         supabase.from("vendas").select("*, venda_itens(*)").order("created_at", { ascending: false }),
@@ -33,19 +35,21 @@ function useStore() {
         supabase.from("despesas").select("*").order("data", { ascending: false }),
         supabase.from("pacotes").select("*").order("nome"),
         supabase.from("pacotes_cliente").select("*, pacotes(nome), clientes(nome)").order("data_compra", { ascending: false }),
+        supabase.from("agendamentos").select("*, clientes(nome)").gte("data", addDays(today(), -60)).order("data", { ascending: true }).order("hora", { ascending: true }),
       ]);
       setProdutos(p.data || []); setClientes(c.data || []); setVendas(v.data || []); setMovimentos(m.data || []);
       setContasReceber(cr.data || []); setContasPagar(cp.data || []); setFornecedores(fn.data || []);
       setPedidosCompra(pc.data || []); setDespesas(de.data || []);
-      setPacotes(pk.data || []); setPacotesCliente(pkc.data || []);
+      setPacotes(pk.data || []); setPacotesCliente(pkc.data || []); setAgendamentos(ag.data || []);
       const coreError = p.error || c.error || v.error || cr.error;
       if (coreError) notify("Erro ao carregar dados principais: " + coreError.message, "error");
+      else if (ag.error) notify("Erro ao carregar agenda: " + ag.error.message, "error");
     } catch { notify("Erro de conexão com o Supabase.", "error"); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  return { produtos, setProdutos, clientes, setClientes, vendas, setVendas, movimentos, setMovimentos, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, pedidosCompra, setPedidosCompra, despesas, setDespesas, pacotes, setPacotes, pacotesCliente, setPacotesCliente, loading, toast, notify, load };
+  return { produtos, setProdutos, clientes, setClientes, vendas, setVendas, movimentos, setMovimentos, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, pedidosCompra, setPedidosCompra, despesas, setDespesas, pacotes, setPacotes, pacotesCliente, setPacotesCliente, agendamentos, setAgendamentos, loading, toast, notify, load };
 }
 
 export default useStore;
