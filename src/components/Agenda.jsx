@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useMobile } from '../hooks/useMobile';
 import { supabase } from '../lib/supabase';
 import { today, addDays } from '../lib/utils';
 import { inp, btn } from '../styles/shared';
@@ -25,7 +24,13 @@ const STATUS_KEYS = Object.keys(STATUS);
 // Join padrão dos selects de agendamento — manter em sincronia com useStore.js.
 const SEL = "*, clientes(nome)";
 
-const formVazio = () => ({ clienteId: "", cliente_nome: "", servico: "", hora: "", duracao_min: "30", status: "agendado", obs: "" });
+const formVazio = () => ({ clienteId: "", cliente_nome: "", servico: "", data: "", hora: "", duracao_min: "30", status: "agendado", obs: "" });
+
+// Converte "HH:MM" em minutos desde 00:00, pra comparar faixas de horário.
+const paraMinutos = (hhmm) => {
+  const [h, m] = (hhmm || "0:0").split(":").map(Number);
+  return h * 60 + m;
+};
 
 // Formata YYYY-MM-DD como "Segunda, 07 de julho".
 const dataLonga = (d) => {
@@ -36,8 +41,6 @@ const dataLonga = (d) => {
 // t = tradutor de vocabulário do segmento (useTermos). "cliente"/"atendimento"
 // vêm do dicionário — nada de domínio hardcoded (arquitetura v2 §0.6).
 const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
-  const isMobile = useMobile();
-
   const [dia, setDia] = useState(today());
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -57,22 +60,36 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
   const abrir = (a = null) => {
     setEditando(a);
     setForm(a
-      ? { clienteId: a.cliente_id ? String(a.cliente_id) : "", cliente_nome: a.cliente_nome || "", servico: a.servico || "", hora: (a.hora || "").slice(0, 5), duracao_min: String(a.duracao_min || 30), status: a.status, obs: a.obs || "" }
-      : formVazio());
+      ? { clienteId: a.cliente_id ? String(a.cliente_id) : "", cliente_nome: a.cliente_nome || "", servico: a.servico || "", data: a.data, hora: (a.hora || "").slice(0, 5), duracao_min: String(a.duracao_min || 30), status: a.status, obs: a.obs || "" }
+      : { ...formVazio(), data: dia });
     setModal(true);
   };
 
   const salvar = async () => {
+    if (!form.data) { notify("Informe a data.", "error"); return; }
     if (!form.hora) { notify("Informe o horário.", "error"); return; }
     if (!form.clienteId && !form.cliente_nome.trim()) { notify(`Escolha um ${t("cliente").toLowerCase()} ou informe um nome.`, "error"); return; }
     const duracao = Number(form.duracao_min);
     if (!Number.isFinite(duracao) || duracao <= 0) { notify("Informe uma duração maior que zero.", "error"); return; }
+    // Data nova (ou movida) não pode ficar no passado — histórico existente não é mexido.
+    const dataMudou = !editando || form.data !== editando.data;
+    if (dataMudou && form.data < today()) { notify("Não é possível agendar para uma data anterior a hoje.", "error"); return; }
+    // Trava de conflito: nenhum outro agendamento (não cancelado) pode se sobrepor no mesmo dia.
+    const inicioNovo = paraMinutos(form.hora);
+    const fimNovo = inicioNovo + duracao;
+    const conflito = agendamentos.some(a => {
+      if (a.data !== form.data || a.id === editando?.id || a.status === "cancelado") return false;
+      const ini = paraMinutos((a.hora || "").slice(0, 5));
+      const fim = ini + Number(a.duracao_min || 30);
+      return inicioNovo < fim && ini < fimNovo;
+    });
+    if (conflito) { notify("Já existe um agendamento nesse horário.", "error"); return; }
     setSaving(true);
     const payload = {
       cliente_id: form.clienteId ? Number(form.clienteId) : null,
       cliente_nome: form.clienteId ? null : form.cliente_nome.trim(),
       servico: form.servico.trim() || null,
-      data: dia,
+      data: form.data,
       hora: form.hora,
       duracao_min: duracao,
       status: form.status,
@@ -84,6 +101,7 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
     const { data, error } = await query.select(SEL).single();
     setSaving(false); if (error) { notify("Erro ao salvar.", "error"); return; }
     setAgendamentos(prev => editando ? prev.map(a => a.id === editando.id ? data : a) : [...prev, data]);
+    if (form.data !== dia) setDia(form.data);
     setModal(false); notify(`Agendamento ${editando ? "atualizado." : "criado."}`);
   };
 
@@ -127,6 +145,8 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
         <button style={{ ...btn("ghost"), padding: "8px 12px" }} onClick={() => setDia(d => addDays(d, 1))} title="Próximo dia">
           <Icon name="chevron" size={14} />
         </button>
+        <input type="date" value={dia} onChange={e => e.target.value && setDia(e.target.value)}
+          style={{ ...inp, width: "auto", padding: "8px 10px", flexShrink: 0 }} title="Ir para uma data" />
       </div>
 
       {/* Lista do dia */}
@@ -163,7 +183,7 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
 
       {/* Modal criar/editar */}
       {modal && (
-        <Modal title={`${editando ? "Editar" : "Novo"} agendamento — ${dataLonga(dia)}`} onClose={() => setModal(false)}>
+        <Modal title={`${editando ? "Editar" : "Novo"} agendamento`} onClose={() => setModal(false)}>
           <Field label={t("cliente")}>
             <select style={inp} value={form.clienteId} onChange={e => setForm({ ...form, clienteId: e.target.value })}>
               <option value="">— Avulso (informe o nome) —</option>
@@ -174,8 +194,11 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
             <Field label="Nome (avulso)"><input style={inp} value={form.cliente_nome} placeholder="Nome de quem será atendido" onChange={e => setForm({ ...form, cliente_nome: e.target.value })} /></Field>
           )}
           <Field label="Serviço"><input style={inp} value={form.servico} placeholder={`Ex: ${t("atendimento")}`} onChange={e => setForm({ ...form, servico: e.target.value })} /></Field>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <Field label="Data"><input style={inp} type="date" min={today()} value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} /></Field>
             <Field label="Hora"><input style={inp} type="time" value={form.hora} onChange={e => setForm({ ...form, hora: e.target.value })} /></Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <Field label="Duração (min)"><input style={inp} type="number" min="5" step="5" value={form.duracao_min} onChange={e => setForm({ ...form, duracao_min: e.target.value })} /></Field>
             <Field label="Status">
               <select style={inp} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
