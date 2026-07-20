@@ -138,7 +138,7 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
         <button style={{ ...btn("ghost"), padding: "8px 12px" }} onClick={() => setDia(d => addDays(d, -1))} title="Dia anterior">
           <span style={{ display: "inline-flex", transform: "rotate(180deg)" }}><Icon name="chevron" size={14} /></span>
         </button>
-        <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
+        <div style={{ flex: "1 1 150px", minWidth: 150, textAlign: "center" }}>
           <div style={{ fontSize: ".92rem", color: "#e0d6b8", fontWeight: 600 }}>{dataLonga(dia)}</div>
           {!isHoje && <button onClick={() => setDia(today())} style={{ background: "none", border: "none", color: "#ffbf00", cursor: "pointer", fontSize: ".68rem", padding: "2px 0" }}>Voltar para hoje</button>}
         </div>
@@ -146,7 +146,7 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
           <Icon name="chevron" size={14} />
         </button>
         <input type="date" value={dia} onChange={e => e.target.value && setDia(e.target.value)}
-          style={{ ...inp, width: "auto", padding: "8px 10px", flexShrink: 0 }} title="Ir para uma data" />
+          style={{ ...inp, width: "auto", padding: "8px 10px", flexShrink: 0, flexGrow: 0, marginLeft: "auto" }} title="Ir para uma data" />
       </div>
 
       {/* Lista do dia */}
