@@ -1,14 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useMobile } from '../hooks/useMobile';
 import { supabase } from '../lib/supabase';
 import { fmt, today } from '../lib/utils';
 import { inp, btn } from '../styles/shared';
+import { podeSubSegmento } from '../lib/clinico';
 import Icon from './ui/Icon';
 import Modal from './ui/Modal';
 import Field from './ui/Field';
 import Spinner from './ui/Spinner';
 import Confirm from './ui/Confirm';
 import EmptyState from './ui/EmptyState';
+import Anamnese from './clinico/Anamnese';
+import Evolucao from './clinico/Evolucao';
+import DocumentosClinicos from './clinico/DocumentosClinicos';
+import PlanoTratamento from './clinico/PlanoTratamento';
+import Odontograma from './clinico/Odontograma';
 
 const calcTier = (n) => {
   if (n >= 4) return { nome: "Elite", pct: 20, cor: "#c9a84c" };
@@ -25,7 +31,13 @@ const Badge = ({ children, color }) => (
 const TIPOS = ["Barbearia", "Salão", "Distribuidor", "Outros"];
 const tipoCor = { Barbearia: "#ffbf00", Salão: "#b86fcf", Distribuidor: "#6b9fd4", Outros: "#4caf82" };
 
-const Clientes = ({ t, clientes, setClientes, vendas, produtos, contasReceber, pacotesCliente = [], notify }) => {
+const Clientes = ({
+  t, clientes, setClientes, vendas, produtos, contasReceber, pacotesCliente = [], notify,
+  segmento, subSegmento, tenantId,
+  anamneses = [], setAnamneses, evolucoes = [], setEvolucoes, agendamentos = [],
+  planosTratamento = [], setPlanosTratamento, fasesTratamento = [], setFasesTratamento,
+  documentosClinicos = [], setDocumentosClinicos, odontogramas = [], setOdontogramas,
+}) => {
   const isMobile = useMobile();
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -35,6 +47,10 @@ const Clientes = ({ t, clientes, setClientes, vendas, produtos, contasReceber, p
   const [ordem, setOrdem] = useState("total");
   const [selId, setSelId] = useState(null);
   const [detalheVenda, setDetalheVenda] = useState(null);
+  const [abaFicha, setAbaFicha] = useState("geral");
+  const ehSaude = segmento === "saude";
+
+  useEffect(() => { setAbaFicha("geral"); }, [selId]);
   const [form, setForm] = useState({ nome: "", contato: "", telefone: "", cidade: "", tipo: "Barbearia", limite_credito: "", indicado_por: "" });
   const [confirmState, setConfirmState] = useState(null);
 
@@ -216,6 +232,47 @@ const Clientes = ({ t, clientes, setClientes, vendas, produtos, contasReceber, p
           </div>
         </div>
 
+        {ehSaude && (
+          <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid #1c1c1c" }}>
+            {[["geral", "Geral"], ["clinico", "Clínico"]].map(([v, label]) => (
+              <button key={v} onClick={() => setAbaFicha(v)}
+                style={{ padding: "8px 14px", border: "none", borderBottom: `2px solid ${abaFicha === v ? "#ffbf00" : "transparent"}`, background: "transparent",
+                  color: abaFicha === v ? "#e0d6b8" : "#555", fontSize: ".82rem", fontWeight: abaFicha === v ? 600 : 400, cursor: "pointer" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {abaFicha === "clinico" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Anamnese</div>
+              <Anamnese clienteId={sel.id} anamneses={anamneses} setAnamneses={setAnamneses} notify={notify} />
+            </div>
+            <div>
+              <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Evolução</div>
+              <Evolucao clienteId={sel.id} evolucoes={evolucoes} setEvolucoes={setEvolucoes} agendamentos={agendamentos} notify={notify} />
+            </div>
+            <div>
+              <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Documentos</div>
+              <DocumentosClinicos tenantId={tenantId} clienteId={sel.id} documentosClinicos={documentosClinicos} setDocumentosClinicos={setDocumentosClinicos} notify={notify} />
+            </div>
+            {podeSubSegmento(subSegmento, "plano_tratamento") && (
+              <div>
+                <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Plano de tratamento</div>
+                <PlanoTratamento clienteId={sel.id} planosTratamento={planosTratamento} setPlanosTratamento={setPlanosTratamento} fasesTratamento={fasesTratamento} setFasesTratamento={setFasesTratamento} notify={notify} />
+              </div>
+            )}
+            {podeSubSegmento(subSegmento, "odontograma") && (
+              <div>
+                <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Odontograma</div>
+                <Odontograma clienteId={sel.id} odontogramas={odontogramas} setOdontogramas={setOdontogramas} notify={notify} />
+              </div>
+            )}
+          </div>
+        ) : (
+        <>
         <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", marginBottom: 16, fontSize: ".8rem", color: "#888" }}>
           {sel.contato && <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ color: "#555", display: "flex" }}><Icon name="users" size={13} /></span>{sel.contato}</span>}
           {sel.telefone && <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ color: "#555", display: "flex" }}><Icon name="phone" size={13} /></span>{sel.telefone}</span>}
@@ -322,6 +379,8 @@ const Clientes = ({ t, clientes, setClientes, vendas, produtos, contasReceber, p
             </div>
           ))}
         </div>
+        </>
+        )}
       </div>
     );
   })();

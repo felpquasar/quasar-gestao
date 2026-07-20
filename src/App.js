@@ -22,6 +22,7 @@ import { Gate } from "./components/ui/Gate";
 import { useMobile } from "./hooks/useMobile";
 import { usePlano } from "./hooks/usePlano";
 import { useTermos } from "./hooks/useTermos";
+import { useClinicoStore } from "./hooks/useClinicoStore";
 import { can } from "./lib/planos";
 
 const LOGO = "/logo.png";
@@ -58,7 +59,12 @@ export default function App() {
 
   const isMobile = useMobile();
   const { plano } = usePlano(tenantId);
-  const { t } = useTermos(tenantId);
+  const { t, segmento, subSegmento } = useTermos(tenantId);
+  const {
+    anamneses, setAnamneses, evolucoes, setEvolucoes,
+    planosTratamento, setPlanosTratamento, fasesTratamento, setFasesTratamento,
+    documentosClinicos, setDocumentosClinicos, odontogramas, setOdontogramas,
+  } = useClinicoStore(tenantId, segmento);
 
   const qtdVencidas = contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today()).length
     + contasPagar.filter(cp => cp.status !== "pago" && cp.data_vencimento < today()).length;
@@ -214,7 +220,11 @@ export default function App() {
             : <div key={aba} className="fade-in">
               {aba === "dashboard" && <Dashboard t={t} produtos={produtos} clientes={clientes} vendas={vendas} movimentos={movimentos} contasReceber={contasReceber} contasPagar={contasPagar} despesas={despesas} reload={load} onNavigate={setAba} />}
               {aba === "estoque" && <Estoque produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} fornecedores={fornecedores} setContasPagar={setContasPagar} pedidosCompra={pedidosCompra} setPedidosCompra={setPedidosCompra} setDespesas={setDespesas} notify={notify} />}
-              {aba === "clientes" && <Clientes t={t} clientes={clientes} setClientes={setClientes} vendas={vendas} produtos={produtos} contasReceber={contasReceber} pacotesCliente={pacotesCliente} notify={notify} />}
+              {aba === "clientes" && <Clientes t={t} clientes={clientes} setClientes={setClientes} vendas={vendas} produtos={produtos} contasReceber={contasReceber} pacotesCliente={pacotesCliente} notify={notify}
+                segmento={segmento} subSegmento={subSegmento} tenantId={tenantId}
+                anamneses={anamneses} setAnamneses={setAnamneses} evolucoes={evolucoes} setEvolucoes={setEvolucoes} agendamentos={agendamentos}
+                planosTratamento={planosTratamento} setPlanosTratamento={setPlanosTratamento} fasesTratamento={fasesTratamento} setFasesTratamento={setFasesTratamento}
+                documentosClinicos={documentosClinicos} setDocumentosClinicos={setDocumentosClinicos} odontogramas={odontogramas} setOdontogramas={setOdontogramas} />}
               {aba === "vendas" && <Vendas t={t} vendas={vendas} setVendas={setVendas} clientes={clientes} produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} setContasReceber={setContasReceber} pacotesCliente={pacotesCliente} setPacotesCliente={setPacotesCliente} notify={notify} />}
               {aba === "agenda" && <Agenda t={t} agendamentos={agendamentos} setAgendamentos={setAgendamentos} clientes={clientes} notify={notify} />}
               {aba === "pacotes" && <Gate plano={plano} feature="pacotes" titulo={t("pacote")}><Pacotes t={t} pacotes={pacotes} setPacotes={setPacotes} pacotesCliente={pacotesCliente} setPacotesCliente={setPacotesCliente} clientes={clientes} setVendas={setVendas} notify={notify} /></Gate>}

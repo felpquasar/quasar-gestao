@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { inp, btn } from "../styles/shared";
+import { SUB_SEGMENTO_LABEL } from "../lib/clinico";
 import Icon from "./ui/Icon";
 import Spinner from "./ui/Spinner";
+
+const SUB_SEGMENTOS = ["dentista", "fisio", "nutri"];
 
 const LOGO = "/logo.png";
 
@@ -13,6 +16,7 @@ const SetupTenant = ({ email, onReady, onLogout }) => {
   const [segmentos, setSegmentos] = useState([]);
   const [carregandoSegmentos, setCarregandoSegmentos] = useState(true);
   const [segmento, setSegmento] = useState("");
+  const [subSegmento, setSubSegmento] = useState("");
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
@@ -29,9 +33,14 @@ const SetupTenant = ({ email, onReady, onLogout }) => {
   const criar = async (e) => {
     e?.preventDefault();
     if (!segmento) { setErro("Escolha o tipo de negócio."); return; }
+    if (segmento === "saude" && !subSegmento) { setErro("Escolha a especialidade."); return; }
     if (!nome.trim()) { setErro("Informe o nome do negócio."); return; }
     setLoading(true); setErro("");
-    const { data, error } = await supabase.rpc("create_tenant", { nome_barbearia: nome.trim(), p_segmento: segmento });
+    const { data, error } = await supabase.rpc("create_tenant", {
+      nome_barbearia: nome.trim(),
+      p_segmento: segmento,
+      p_sub_segmento: segmento === "saude" ? subSegmento : null,
+    });
     setLoading(false);
     if (error) { setErro(error.message || "Não foi possível criar o negócio."); return; }
     onReady(data); // tenant_id
@@ -63,6 +72,22 @@ const SetupTenant = ({ email, onReady, onLogout }) => {
                 </button>
               ))}
             </div>
+          )}
+          {segmento === "saude" && (
+            <>
+              <label style={{ display: "block", fontSize: ".72rem", color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: ".05em" }}>Especialidade</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: "1.25rem" }}>
+                {SUB_SEGMENTOS.map(s => (
+                  <button type="button" key={s} onClick={() => setSubSegmento(s)}
+                    style={{ padding: "10px 8px", borderRadius: 8, cursor: "pointer", textAlign: "center", fontSize: ".8rem",
+                      border: `1px solid ${subSegmento === s ? "#c9a84c" : "#252520"}`,
+                      background: subSegmento === s ? "#c9a84c22" : "#0a0a08",
+                      color: subSegmento === s ? "#c9a84c" : "#aaa", fontWeight: subSegmento === s ? 600 : 400 }}>
+                    {SUB_SEGMENTO_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           <label style={{ display: "block", fontSize: ".72rem", color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: ".05em" }}>Nome do negócio</label>
           <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Barbearia do Zé"

@@ -12,10 +12,11 @@ import { supabase } from "../lib/supabase";
 export function useTermos(tenantId) {
   const [termos, setTermos] = useState({});
   const [segmento, setSegmento] = useState("barbearia");
+  const [subSegmento, setSubSegmento] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    if (!tenantId) { setTermos({}); setSegmento("barbearia"); setCarregando(true); return; }
+    if (!tenantId) { setTermos({}); setSegmento("barbearia"); setSubSegmento(null); setCarregando(true); return; }
     let ativo = true;
     setCarregando(true);
 
@@ -23,7 +24,7 @@ export function useTermos(tenantId) {
       // segmento + customizações da loja ativa (RLS: tenants_self permite ler a própria)
       const { data: tenant } = await supabase
         .from("tenants")
-        .select("segmento, termos_customizados")
+        .select("segmento, sub_segmento, termos_customizados")
         .eq("id", tenantId)
         .single();
 
@@ -39,6 +40,7 @@ export function useTermos(tenantId) {
 
       if (!ativo) return;
       setSegmento(seg);
+      setSubSegmento(tenant?.sub_segmento || null);
       setTermos({ ...(segRow?.termos || {}), ...custom });
       setCarregando(false);
     })();
@@ -49,5 +51,5 @@ export function useTermos(tenantId) {
   // fallback devolve a chave -> tela nunca quebra por rótulo faltante
   const t = (chave) => termos[chave] ?? chave;
 
-  return { t, segmento, termos, carregando };
+  return { t, segmento, subSegmento, termos, carregando };
 }
