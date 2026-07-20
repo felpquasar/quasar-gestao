@@ -308,10 +308,12 @@ const Clientes = ({ t, clientes, setClientes, vendas, produtos, contasReceber, p
               </button>
               {detalheVenda?.id === v.id && (
                 <div style={{ background: "#101010", borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
-                  {(v.venda_itens || []).map((it, j) => { const p = produtos.find(x => x.id === it.produto_id); return (
+                  {(v.venda_itens || []).map((it, j) => { const p = produtos.find(x => x.id === it.produto_id); const isSessao = it.pacote_cliente_id != null; return (
                     <div key={j} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "4px 0", borderBottom: j < (v.venda_itens || []).length - 1 ? "1px solid #1a1a1a" : "none", fontSize: ".8rem" }}>
-                      <span style={{ color: "#ccc", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.nome ?? "Produto removido"}</span>
-                      <span style={{ color: "#888", fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>{it.quantidade}x {fmt(it.preco)}</span>
+                      <span style={{ color: "#ccc", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {isSessao ? <>{t("atendimento")} <span style={{ color: "#4caf82", fontSize: ".72rem" }}>({t("pacote").toLowerCase()})</span></> : (p?.nome ?? "Produto removido")}
+                      </span>
+                      <span style={{ color: isSessao ? "#4caf82" : "#888", fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>{isSessao ? "grátis" : `${it.quantidade}x ${fmt(it.preco)}`}</span>
                     </div>
                   ); })}
                   {(v.venda_itens || []).length === 0 && <div style={{ color: "#444", fontSize: ".78rem" }}>Sem itens</div>}
