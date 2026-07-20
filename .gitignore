@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+scripts/node_modules/
 /.pnp
 .pnp.js
 
@@ -37,3 +38,4 @@ recovery_*.sql
 
 .playwright-mcp/
 /*.png
+!docs/screenshots/*.png

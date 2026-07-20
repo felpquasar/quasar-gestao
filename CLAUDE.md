@@ -55,3 +55,24 @@ Key relations:
 - When a `venda` is marked as paid (`marcarPago`), the corresponding `contas_receber` row must also be updated
 - Overdue badge count (`qtdVencidas`) is computed in `App.js` and passed as `badge` on the nav item — it drives the red badge on the Financeiro tab
 - The `Dashboard` component accepts `contasReceber` to show the overdue alert card
+
+## Evolução: Quasar Gestão (SaaS multi-tenant)
+
+Renomeado de "Quasar Barber" para **Quasar Gestão** em 24/06/2026 — está virando um SaaS multi-tenant para barbearias. Novidades além do descrito acima:
+- Tabelas adicionais: `agendamentos`, `assinaturas`, `tenants`, `pacotes`
+- RPC `create_tenant(nome_barbearia)` para onboarding de novos tenants
+- Três planos de assinatura com gating de features: **núcleo**, **quasar pro**, **constelação**
+- Deploy: Vercel (`quasar-gestao.vercel.app`) — push no master = deploy automático (nunca commitar/push sem comando do Felipe)
+- Conta de teste do Felipe: `quasarbarber01@gmail.com`
+- O Felipe testa pelo celular também — toda feature nova precisa funcionar em viewport mobile
+
+## SQL direto no banco (scripts/run-sql.js)
+
+Existe `scripts/run-sql.js` (pasta isolada com seu próprio `package.json`, não entra no build do CRA) que roda SQL direto no Postgres via `DATABASE_URL`, sem precisar do Felipe colar no Supabase Dashboard e devolver o resultado.
+
+- Se `DATABASE_URL` NÃO estiver no `.env` da raiz: pedir ao Felipe para configurar (ver `SETUP-SQL-DIRETO.md`) e, até lá, seguir o fluxo manual antigo (gerar o SQL numerado, ele roda no Dashboard, confirma).
+- Se `DATABASE_URL` estiver configurada: usar `node scripts/run-sql.js <arquivo.sql>` ou `node scripts/run-sql.js --sql="..."` em vez de pedir para o Felipe rodar manualmente.
+
+## Estado da sessão
+
+Os arquivos `contexto-compactado-*.md` na raiz guardam onde cada frente de trabalho parou — ler o mais recente ao retomar ("onde paramos").

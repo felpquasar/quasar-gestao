@@ -1,0 +1,9 @@
+{
+  "name": "quasar-gestao-scripts",
+  "private": true,
+  "description": "Ferramentas de linha de comando isoladas do build do CRA (não afeta o app React).",
+  "dependencies": {
+    "pg": "^8.11.3",
+    "dotenv": "^16.4.5"
+  }
+}

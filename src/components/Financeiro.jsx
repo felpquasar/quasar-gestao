@@ -6,7 +6,7 @@ import Fornecedores from './Fornecedores';
 import FluxoCaixa from './FluxoCaixa';
 import Despesas from './Despesas';
 
-const Financeiro = ({ contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, clientes, vendas, despesas, setDespesas, notify }) => {
+const Financeiro = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, clientes, vendas, despesas, setDespesas, notify }) => {
   const [aba, setAba] = useState("receber");
 
   const qtdReceberVencidas = contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today()).length;
@@ -40,13 +40,13 @@ const Financeiro = ({ contasReceber, setContasReceber, contasPagar, setContasPag
       </div>
 
       <div style={{ display: "flex", gap: 0, marginBottom: "1.75rem", borderBottom: "1px solid #1f1f1f", overflowX: "auto" }}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setAba(t.id)}
-            style={{ padding: "8px 16px 11px", border: "none", borderBottom: `2px solid ${aba === t.id ? "#ffbf00" : "transparent"}`, background: "transparent", cursor: "pointer", color: aba === t.id ? "#e0d6b8" : "#3a3835", fontSize: ".88rem", fontWeight: aba === t.id ? 600 : 400, display: "inline-flex", alignItems: "center", gap: 7, transition: "all .15s", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
-            {t.label}
-            {t.badge > 0 && (
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setAba(tab.id)}
+            style={{ padding: "8px 16px 11px", border: "none", borderBottom: `2px solid ${aba === tab.id ? "#ffbf00" : "transparent"}`, background: "transparent", cursor: "pointer", color: aba === tab.id ? "#e0d6b8" : "#3a3835", fontSize: ".88rem", fontWeight: aba === tab.id ? 600 : 400, display: "inline-flex", alignItems: "center", gap: 7, transition: "all .15s", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
+            {tab.label}
+            {tab.badge > 0 && (
               <span style={{ background: "#e05a5a", color: "#fff", borderRadius: 6, padding: "1px 6px", fontSize: ".65rem", fontWeight: 700, minWidth: 18, textAlign: "center" }}>
-                {t.badge}
+                {tab.badge}
               </span>
             )}
           </button>
@@ -54,7 +54,7 @@ const Financeiro = ({ contasReceber, setContasReceber, contasPagar, setContasPag
       </div>
 
       {aba === "receber" && (
-        <ContasReceber contasReceber={contasReceber} setContasReceber={setContasReceber} clientes={clientes} notify={notify} />
+        <ContasReceber t={t} contasReceber={contasReceber} setContasReceber={setContasReceber} clientes={clientes} notify={notify} />
       )}
       {aba === "pagar" && (
         <ContasPagar contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} notify={notify} />
@@ -63,7 +63,7 @@ const Financeiro = ({ contasReceber, setContasReceber, contasPagar, setContasPag
         <Fornecedores fornecedores={fornecedores} setFornecedores={setFornecedores} contasPagar={contasPagar} notify={notify} />
       )}
       {aba === "fluxo" && (
-        <FluxoCaixa contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} clientes={clientes} fornecedores={fornecedores} notify={notify} />
+        <FluxoCaixa t={t} contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} clientes={clientes} fornecedores={fornecedores} notify={notify} />
       )}
       {aba === "despesas" && (
         <Despesas despesas={despesas} setDespesas={setDespesas} notify={notify} />

@@ -13,7 +13,7 @@ const exportCSV = (rows, filename) => {
   URL.revokeObjectURL(url);
 };
 
-const RelatorioInadimplencia = ({ contasReceber, clientes }) => {
+const RelatorioInadimplencia = ({ t = (k) => k, contasReceber, clientes }) => {
   const vencidas = useMemo(() =>
     contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today())
   , [contasReceber]);
@@ -37,7 +37,7 @@ const RelatorioInadimplencia = ({ contasReceber, clientes }) => {
 
   const handleCSV = () => {
     exportCSV([
-      ["Cliente", "Cobranças Vencidas", "Total Vencido (R$)", "Dias Máx. de Atraso", "Severidade"],
+      [t("cliente"), "Cobranças Vencidas", "Total Vencido (R$)", "Dias Máx. de Atraso", "Severidade"],
       ...porCliente.map(c => {
         const sev = c.maxDias > 90 ? "Crítico" : c.maxDias > 30 ? "Alto" : "Baixo";
         return [c.nome, c.qtd, c.total.toFixed(2), c.maxDias, sev];
@@ -70,7 +70,7 @@ const RelatorioInadimplencia = ({ contasReceber, clientes }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: "1.5rem" }}>
         {[
           { label: "Total Vencido", valor: fmt(totalVencido), cor: "#e05a5a" },
-          { label: "Clientes Inadimplentes", valor: porCliente.length, cor: "#e8a020" },
+          { label: `${t("clientes")} Inadimplentes`, valor: porCliente.length, cor: "#e8a020" },
           { label: "Cobranças Vencidas", valor: vencidas.length, cor: "#e8a020" },
           { label: "Maior Atraso", valor: `${maxDiasGeral} dias`, cor: "#e05a5a" },
         ].map((s, i) => (
@@ -86,7 +86,7 @@ const RelatorioInadimplencia = ({ contasReceber, clientes }) => {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
           <thead>
             <tr style={{ background: "#111" }}>
-              {["Cliente", "Cobranças", "Total Vencido", "Dias Máx.", "Severidade"].map((h, i) => (
+              {[t("cliente"), "Cobranças", "Total Vencido", "Dias Máx.", "Severidade"].map((h, i) => (
                 <th key={h} style={{ padding: ".75rem 1rem", textAlign: i >= 2 ? "right" : "left", fontSize: ".72rem", color: "#555", textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{h}</th>
               ))}
             </tr>

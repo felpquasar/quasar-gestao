@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+// pre-commit: remove BOM automaticamente de arquivos staged antes do commit.
+// Motivo: build da Vercel usa CI=true e trata "Unexpected Unicode BOM" como erro fatal.
+'use strict';
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+
+const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
+
+function sh(cmd) {
+  return execSync(cmd, { encoding: 'utf8' });
+}
+
+const staged = sh('git diff --cached --name-only --diff-filter=ACM')
+  .split('\n')
+  .filter(Boolean);
+
+const fixed = [];
+for (const file of staged) {
+  if (!fs.existsSync(file)) continue;
+  let buf;
+  try {
+    buf = fs.readFileSync(file);
+  } catch (_) {
+    continue;
+  }
+  if (buf.length >= 3 && buf.slice(0, 3).equals(BOM)) {
+    fs.writeFileSync(file, buf.slice(3));
+    sh(`git add "${file}"`);
+    fixed.push(file);
+  }
+}
+
+if (fixed.length) {
+  console.log('[pre-commit] BOM removido automaticamente de:');
+  fixed.forEach((f) => console.log('  - ' + f));
+}
+
+process.exit(0);

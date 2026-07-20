@@ -17,7 +17,7 @@ const CAT_COR = { estoque: "#ffbf00", aluguel: "#6b9fd4", servicos: "#5cb8d4", i
 
 const MESES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
-const FluxoCaixa = ({ contasReceber, setContasReceber, contasPagar, setContasPagar, clientes, fornecedores, notify }) => {
+const FluxoCaixa = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar, setContasPagar, clientes, fornecedores, notify }) => {
   const [periodo, setPeriodo] = useState("3m");
   const [tooltip, setTooltip] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
@@ -319,7 +319,7 @@ const FluxoCaixa = ({ contasReceber, setContasReceber, contasPagar, setContasPag
                       {isReceber ? (item.descricao || "Cobrança") : item.descricao}
                     </div>
                     <div style={{ fontSize: ".75rem", color: "#555", marginTop: 2 }}>
-                      {isReceber ? `Cliente: ${item.entidade}` : `Fornecedor: ${item.entidade}`}
+                      {isReceber ? `${t("cliente")}: ${item.entidade}` : `Fornecedor: ${item.entidade}`}
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, display: "flex", alignItems: "center", gap: 10 }}>
@@ -346,9 +346,9 @@ const FluxoCaixa = ({ contasReceber, setContasReceber, contasPagar, setContasPag
       {modalEditar && (
         <Modal title={modalEditar.tipo === "receber" ? "Editar Cobrança" : "Editar Conta a Pagar"} onClose={() => setModalEditar(null)}>
           {modalEditar.tipo === "receber" ? (
-            <Field label="Cliente">
+            <Field label={t("cliente")}>
               <select style={inp} value={editForm.clienteId} onChange={e => setEditForm({ ...editForm, clienteId: e.target.value })}>
-                <option value="">Sem cliente</option>
+                <option value="">Sem {t("cliente").toLowerCase()}</option>
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </Field>

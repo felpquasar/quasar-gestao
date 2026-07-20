@@ -84,6 +84,7 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
   const addSessao = () => setItens(p => [...p, { tipo: "sessao", pacoteClienteId: "", quantidade: 1, preco: "" }]);
 
   const addEditItem = () => setEditItens(p => [...p, { produtoId: "", quantidade: 1, preco: "" }]);
+  const addEditSessao = () => setEditItens(p => [...p, { tipo: "sessao", pacoteClienteId: "", quantidade: 1, preco: "" }]);
   const remEditItem = (i) => setEditItens(p => p.filter((_, idx) => idx !== i));
   const updEditItem = (i, field, val) =>
     setEditItens(p => p.map((it, idx) => {
@@ -92,6 +93,18 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
       if (field === "produtoId") { const prod = produtos.find(x => x.id === Number(val)); if (prod) u.preco = prod.preco; }
       return u;
     }));
+
+  // Cartelas selecionáveis na edição: com saldo, OU já vinculada a esta venda (mesmo com saldo zerado).
+  const editCartelasDisponiveis = useMemo(() => {
+    const cid = Number(editForm.clienteId);
+    if (!cid) return [];
+    const jaNaVenda = new Set((editVenda?.venda_itens || []).filter(it => it.pacote_cliente_id != null).map(it => it.pacote_cliente_id));
+    return (pacotesCliente || []).filter(pc =>
+      pc.cliente_id === cid
+      && ((pc.sessoes_total - pc.sessoes_usadas) > 0 || jaNaVenda.has(pc.id))
+      && (!pc.data_validade || pc.data_validade >= today() || jaNaVenda.has(pc.id))
+    );
+  }, [editForm.clienteId, pacotesCliente, editVenda]);
 
   const subtotal = itens.reduce((a, it) => a + (Number(it.quantidade) || 0) * (Number(it.preco) || 0), 0);
   const descPct = Math.min(Math.max(Number(form.desconto) || 0, 0), 100);
@@ -181,29 +194,33 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
       forma: v.forma_pagamento || "parcelado",
       prazo: v.prazo_dias || 30,
     });
-    setEditItens((v.venda_itens || []).map(it => ({
-      produtoId: String(it.produto_id),
-      quantidade: it.quantidade,
-      preco: it.preco,
-    })));
+    setEditItens((v.venda_itens || []).map(it => it.pacote_cliente_id != null
+      ? { tipo: "sessao", pacoteClienteId: String(it.pacote_cliente_id), quantidade: 1, preco: 0 }
+      : { produtoId: String(it.produto_id), quantidade: it.quantidade, preco: it.preco }
+    ));
     setModalEditar(true);
   };
 
   const salvarEdicao = async () => {
-    if (!editForm.clienteId || editItens.some(it => !it.produtoId || !it.quantidade || !it.preco)) {
-      notify("Preencha todos os campos da venda.", "error"); return;
-    }
+    const itensProdutoNovo = editItens.filter(it => it.tipo !== "sessao");
+    const itensSessaoNovo = editItens.filter(it => it.tipo === "sessao");
+    if (!editForm.clienteId) { notify("Selecione o cliente.", "error"); return; }
+    if (editItens.length === 0) { notify("Adicione ao menos um item.", "error"); return; }
+    if (itensProdutoNovo.some(it => !it.produtoId || !it.quantidade || !it.preco)) { notify("Preencha todos os campos da venda.", "error"); return; }
+    if (itensSessaoNovo.some(it => !it.pacoteClienteId)) { notify(`Selecione o ${t("pacote").toLowerCase()} de cada ${t("atendimento").toLowerCase()}.`, "error"); return; }
     setSaving(true);
     try {
       const oldItens = editVenda.venda_itens || [];
+      const oldItensProduto = oldItens.filter(it => it.produto_id != null);
+      const oldSessaoIds = oldItens.filter(it => it.pacote_cliente_id != null).map(it => Number(it.pacote_cliente_id));
+      const novoSessaoIds = itensSessaoNovo.map(it => Number(it.pacoteClienteId));
 
-      // Variação líquida de estoque por produto
+      // Variação líquida de estoque por produto (sessões não mexem em estoque)
       const netChanges = {};
-      for (const it of oldItens) {
-        const pid = it.produto_id;
-        netChanges[pid] = (netChanges[pid] || 0) + Number(it.quantidade);
+      for (const it of oldItensProduto) {
+        netChanges[it.produto_id] = (netChanges[it.produto_id] || 0) + Number(it.quantidade);
       }
-      for (const it of editItens) {
+      for (const it of itensProdutoNovo) {
         const pid = Number(it.produtoId);
         netChanges[pid] = (netChanges[pid] || 0) - Number(it.quantidade);
       }
@@ -215,18 +232,32 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
         await supabase.from("produtos").update({ estoque: prod.estoque + delta }).eq("id", Number(pid));
       }
 
+      // Reconciliação de sessões: refund das removidas, consumo (RPC) das novas
+      const removidas = oldSessaoIds.filter(id => !novoSessaoIds.includes(id));
+      const adicionadas = novoSessaoIds.filter(id => !oldSessaoIds.includes(id));
+      const refundDeltas = {};
+      for (const id of removidas) {
+        const pc = (pacotesCliente || []).find(p => p.id === id);
+        if (!pc) continue;
+        const novoUsadas = Math.max(0, pc.sessoes_usadas - 1);
+        await supabase.from("pacotes_cliente").update({ sessoes_usadas: novoUsadas }).eq("id", id);
+        refundDeltas[id] = novoUsadas;
+      }
+      for (const id of adicionadas) {
+        const { error: rpcErr } = await supabase.rpc("consumir_sessao", { p_pacote_cliente: id });
+        if (rpcErr) throw new Error(rpcErr.message || "Falha ao consumir sessão do pacote.");
+      }
+
       // Substitui itens
       await supabase.from("venda_itens").delete().eq("venda_id", editVenda.id);
-      const novoItens = editItens.map(it => ({
-        venda_id: editVenda.id,
-        produto_id: Number(it.produtoId),
-        quantidade: Number(it.quantidade),
-        preco: Number(it.preco),
-      }));
+      const novoItens = [
+        ...itensProdutoNovo.map(it => ({ venda_id: editVenda.id, produto_id: Number(it.produtoId), quantidade: Number(it.quantidade), preco: Number(it.preco) })),
+        ...itensSessaoNovo.map(it => ({ venda_id: editVenda.id, pacote_cliente_id: Number(it.pacoteClienteId), produto_id: null, quantidade: 1, preco: 0 })),
+      ];
       await supabase.from("venda_itens").insert(novoItens);
 
-      // Movimento de saída para os novos itens
-      for (const it of editItens) {
+      // Movimento de saída só para itens de produto (sessão não mexe em estoque)
+      for (const it of itensProdutoNovo) {
         await supabase.from("movimentos").insert({
           produto_id: Number(it.produtoId), tipo: "saida",
           quantidade: Number(it.quantidade), data: editForm.data,
@@ -257,13 +288,20 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
         const delta = netChanges[p.id];
         return delta !== undefined ? { ...p, estoque: p.estoque + delta } : p;
       }));
+      if (setPacotesCliente && (removidas.length || adicionadas.length)) {
+        setPacotesCliente(prev => prev.map(pc => {
+          if (refundDeltas[pc.id] !== undefined) return { ...pc, sessoes_usadas: refundDeltas[pc.id] };
+          if (adicionadas.includes(pc.id)) return { ...pc, sessoes_usadas: pc.sessoes_usadas + 1 };
+          return pc;
+        }));
+      }
       setVendas(prev => prev.map(v => v.id === editVenda.id ? { ...vendaAtualizada, venda_itens: novoItens } : v));
       setModalEditar(false);
       setEditVenda(null);
       notify("Venda atualizada.");
     } catch (err) {
       console.error(err);
-      notify("Erro ao atualizar venda.", "error");
+      notify(err?.message || err?.details || "Erro ao atualizar venda.", "error");
     } finally { setSaving(false); }
   };
 
@@ -673,7 +711,12 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
           <div style={{ borderTop: "1px solid #2a2a2a", paddingTop: "1rem", marginTop: ".5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>
               <span style={{ fontSize: ".75rem", color: "#666", textTransform: "uppercase", letterSpacing: ".05em" }}>Itens da Venda</span>
-              <button style={{ ...btn("ghost"), padding: "4px 10px", fontSize: ".75rem" }} onClick={addEditItem}>+ Adicionar item</button>
+              <div style={{ display: "flex", gap: 6 }}>
+                {editCartelasDisponiveis.length > 0 && (
+                  <button style={{ ...btn("ghost"), padding: "4px 10px", fontSize: ".75rem", color: "#4caf82" }} onClick={addEditSessao}>+ {t("atendimento")} de {t("pacote").toLowerCase()}</button>
+                )}
+                <button style={{ ...btn("ghost"), padding: "4px 10px", fontSize: ".75rem" }} onClick={addEditItem}>+ Adicionar item</button>
+              </div>
             </div>
             {!isMobile && (
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 6, marginBottom: 4 }}>
@@ -682,7 +725,17 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
                 ))}
               </div>
             )}
-            {editItens.map((it, i) => isMobile ? (
+            {editItens.map((it, i) => it.tipo === "sessao" ? (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, padding: "6px 8px", background: "#0d1a14", border: "1px solid #1a4a2a", borderRadius: 6 }}>
+                <span style={{ color: "#4caf82", display: "flex", flexShrink: 0 }}><Icon name="pacote" size={15} /></span>
+                <select style={{ ...inp, flex: 1 }} value={it.pacoteClienteId} onChange={e => updEditItem(i, "pacoteClienteId", e.target.value)}>
+                  <option value="">Selecionar {t("pacote").toLowerCase()}...</option>
+                  {editCartelasDisponiveis.map(pc => <option key={pc.id} value={pc.id}>{(pc.pacotes?.nome || t("pacote"))} — saldo {pc.sessoes_total - pc.sessoes_usadas}</option>)}
+                </select>
+                <span style={{ fontSize: ".75rem", color: "#4caf82", fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>grátis</span>
+                <button style={{ background: "none", border: "none", color: "#e05a5a", cursor: "pointer", padding: "0 4px" }} onClick={() => remEditItem(i)}><Icon name="x" size={16} /></button>
+              </div>
+            ) : isMobile ? (
               <div key={i} style={{ marginBottom: 10 }}>
                 <select style={{ ...inp, width: "100%", marginBottom: 6 }} value={it.produtoId} onChange={e => updEditItem(i, "produtoId", e.target.value)}>
                   <option value="">Produto...</option>

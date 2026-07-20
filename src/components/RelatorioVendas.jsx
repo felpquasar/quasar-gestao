@@ -30,7 +30,7 @@ const brDate = ymd => {
   return `${d}/${m}/${y}`;
 };
 
-const RelatorioVendas = ({ vendas, clientes, produtos }) => {
+const RelatorioVendas = ({ t = (k) => k, vendas, clientes, produtos }) => {
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(anoAtual);
   const [mes, setMes] = useState("00");
@@ -147,7 +147,7 @@ const RelatorioVendas = ({ vendas, clientes, produtos }) => {
         {/* Top clientes */}
         <div>
           <div style={{ fontSize: ".7rem", color: "#555", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: ".75rem" }}>
-            Top clientes · {filtradas.length} venda{filtradas.length !== 1 ? "s" : ""} no período
+            Top {t("clientes").toLowerCase()} · {filtradas.length} venda{filtradas.length !== 1 ? "s" : ""} no período
           </div>
           <div style={{ background: "#141414", border: "1px solid #1f1f1f", borderRadius: 10, overflow: "hidden" }}>
             {topClientes.length === 0 ? (
@@ -156,7 +156,7 @@ const RelatorioVendas = ({ vendas, clientes, produtos }) => {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
                 <thead>
                   <tr style={{ background: "#111" }}>
-                    {["#", "Cliente", "Pedidos", "Total", "%"].map((h, i) => (
+                    {["#", t("cliente"), "Pedidos", "Total", "%"].map((h, i) => (
                       <th key={h} style={{ padding: ".65rem 1rem", textAlign: i >= 2 ? "right" : "left", fontSize: ".7rem", color: "#555", textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>

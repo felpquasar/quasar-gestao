@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quasar Barber — Identidade Visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* —— Núcleo & superfícies —— */
+    --nucleo:    #0A0A0C;   /* preto-espaço, fundo principal */
+    --orbita:    #141418;   /* superfície elevada / cards */
+    --orbita-2:  #1B1B21;   /* superfície mais clara */
+    --anel:      #2A2A31;   /* bordas / divisores */
+    --anel-soft: #1E1E24;
+
+    /* —— Luz do quasar —— */
+    --ouro:      #D9A441;   /* dourado primário */
+    --brasa:     #C0772E;   /* cobre quente (profundidade/gradiente) */
+    --brilho:    #F4CE6A;   /* destaque luminoso */
+
+    /* —— Texto —— */
+    --claro:     #F2EFE7;   /* texto principal */
+    --suave:     #989589;   /* texto secundário */
+    --suave-2:   #6C6960;   /* texto terciário / legenda */
+
+    /* —— Estados —— */
+    --sucesso:   #6FA86A;
+    --erro:      #C8584E;
+
+    --maxw: 1080px;
+    --r: 14px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--nucleo);
+    color:var(--claro);
+    font-family:'Barlow',system-ui,sans-serif;
+    font-weight:400;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--ouro);color:var(--nucleo)}
+
+  /* ————— Tipografia base ————— */
+  .display{font-family:'Bebas Neue',sans-serif;font-weight:400;line-height:.92;letter-spacing:.01em}
+  .cond{font-family:'Barlow Condensed',sans-serif}
+  .mono{font-family:'Space Mono',monospace}
+
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:.72rem;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    color:var(--ouro);
+    display:inline-block;
+  }
+
+  /* ————— Layout helpers ————— */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  section{padding:110px 0;position:relative}
+  .sec-head{margin-bottom:56px}
+  .sec-head h2{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(2.6rem,6vw,4.4rem);
+    line-height:.9;
+    margin-top:14px;
+    letter-spacing:.02em;
+  }
+  .sec-head p{color:var(--suave);max-width:54ch;margin-top:16px;font-size:1.02rem}
+  .num{color:var(--suave-2);font-family:'Space Mono',monospace;font-size:.72rem}
+
+  .divider{height:1px;background:var(--anel);max-width:var(--maxw);margin:0 auto}
+
+  /* ————— Arco orbital (motivo assinatura) ————— */
+  .orbit-line{
+    position:absolute;border:1px solid var(--anel-soft);border-radius:50%;
+    pointer-events:none;
+  }
+
+  /* =========================================================
+     HERO — A TESE: luz que nasce do escuro
+  ==========================================================*/
+  .hero{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    text-align:center;position:relative;overflow:hidden;padding:80px 28px;
+  }
+  .quasar-glow{
+    position:absolute;top:50%;left:50%;width:min(900px,120vw);height:min(900px,120vw);
+    transform:translate(-50%,-50%);
+    background:
+      radial-gradient(circle at center,
+        rgba(244,206,106,.30) 0%,
+        rgba(217,164,65,.16) 18%,
+        rgba(192,119,46,.07) 38%,
+        rgba(192,119,46,0) 62%);
+    filter:blur(6px);
+    animation:pulse 7s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:.82;transform:translate(-50%,-50%) scale(1)}
+    50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
+  }
+  .hero-core{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:10px;height:10px;border-radius:50%;
+    background:var(--brilho);
+    box-shadow:0 0 24px 6px rgba(244,206,106,.7),0 0 60px 18px rgba(217,164,65,.35);
+  }
+  .hero-rings .orbit-line{top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg)}
+  .hero-rings .r1{width:320px;height:120px}
+  .hero-rings .r2{width:520px;height:200px;border-color:#191920}
+  .hero-rings .r3{width:760px;height:300px;border-color:#141419}
+
+  .hero-content{position:relative;z-index:2}
+  .hero .glyph{margin-bottom:34px}
+  .hero h1{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(4.2rem,16vw,11rem);
+    line-height:.84;letter-spacing:.02em;
+    background:linear-gradient(180deg,#FBF4E2 0%,var(--ouro) 78%,var(--brasa) 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  .hero .sub{
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;
+    letter-spacing:.6em;text-transform:uppercase;
+    font-size:clamp(.8rem,2.4vw,1.15rem);color:var(--claro);
+    margin-top:8px;padding-left:.6em;
+  }
+  .hero .tag{color:var(--suave);margin-top:30px;font-size:1.05rem;max-width:44ch;margin-inline:auto}
+  .scroll-hint{
+    position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
+    font-family:'Space Mono',monospace;font-size:.66rem;letter-spacing:.3em;
+    text-transform:uppercase;color:var(--suave-2);z-index:2;
+  }
+
+  /* ————— Glyph SVG (marca) ————— */
+  .glyph svg{display:block;margin:0 auto}
+
+  /* =========================================================
+     CONCEITO
+  ==========================================================*/
+  .concept-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center}
+  .concept-grid p{color:var(--suave);font-size:1.06rem;margin-bottom:18px}
+  .concept-grid p strong{color:var(--claro);font-weight:500}
+  .concept-grid .lead{font-size:1.3rem;color:var(--claro);line-height:1.5;margin-bottom:26px;font-weight:300}
+  .concept-grid .lead b{color:var(--ouro);font-weight:600}
+  .pillars{display:flex;flex-direction:column;gap:18px;margin-top:8px}
+  .pillar{border-left:2px solid var(--ouro);padding:4px 0 4px 18px}
+  .pillar h4{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:1.05rem}
+  .pillar span{color:var(--suave);font-size:.92rem}
+  .concept-visual{
+    aspect-ratio:1;border-radius:var(--r);position:relative;overflow:hidden;
+    background:radial-gradient(circle at 50% 50%,#17130c 0%,var(--nucleo) 70%);
+    border:1px solid var(--anel);display:grid;place-items:center;
+  }
+  .concept-visual .cv-core{width:14px;height:14px;border-radius:50%;background:var(--brilho);
+    box-shadow:0 0 30px 8px rgba(244,206,106,.6),0 0 80px 30px rgba(217,164,65,.25)}
+  .concept-visual .orbit-line{top:50%;left:50%}
+  .cv1{width:46%;height:46%;transform:translate(-50%,-50%) rotate(-20deg)}
+  .cv2{width:72%;height:72%;transform:translate(-50%,-50%) rotate(-20deg);border-color:#241c10}
+  .cv3{width:96%;height:96%;transform:translate(-50%,-50%) rotate(-20deg);border-color:#1a160d}
+
+  /* =========================================================
+     LOGO
+  ==========================================================*/
+  .logo-stage{
+    background:var(--orbita);border:1px solid var(--anel);border-radius:var(--r);
+    padding:72px 40px;display:grid;place-items:center;position:relative;overflow:hidden;
+  }
+  .logo-stage .quasar-glow{width:600px;height:600px;animation:none;opacity:.5}
+  .logo-lockup{position:relative;z-index:2;text-align:center}
+  .logo-lockup .lw{
+    font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,9vw,5.4rem);line-height:.85;
+    letter-spacing:.03em;color:var(--claro);
+  }
+  .logo-lockup .lw .b{color:var(--ouro)}
+  .logo-lockup .lt{
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.55em;
+    text-transform:uppercase;font-size:.78rem;color:var(--suave);margin-top:6px;padding-left:.55em;
+  }
+  .logo-variants{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+  .lv{border:1px solid var(--anel);border-radius:10px;padding:30px 16px;text-align:center;display:grid;place-items:center;gap:14px;min-height:150px}
+  .lv.on-light{background:var(--claro)}
+  .lv .vlabel{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--suave-2)}
+  .lv.on-light .vlabel{color:#8a8478}
+  .lv .mini{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:.04em;line-height:1}
+  .lv .mini .b{color:var(--ouro)}
+  .lv.on-light .mini{color:#15151a}
+  .lv.on-light .mini .b{color:var(--brasa)}
+
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:36px}
+  .rule{border:1px solid var(--anel);border-radius:10px;padding:22px 24px}
+  .rule .rh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .rule .rh .ico{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700;flex:none}
+  .rule.do .ico{background:rgba(111,168,106,.16);color:var(--sucesso)}
+  .rule.dont .ico{background:rgba(200,88,78,.16);color:var(--erro)}
+  .rule .rh span{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.95rem}
+  .rule ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .rule li{color:var(--suave);font-size:.92rem;padding-left:16px;position:relative}
+  .rule li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--anel)}
+
+  /* =========================================================
+     CORES
+  ==========================================================*/
+  .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .sw{border:1px solid var(--anel);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .2s ease,border-color .2s ease;background:var(--orbita)}
+  .sw:hover{transform:translateY(-4px);border-color:var(--ouro)}
+  .sw:focus-visible{outline:2px solid var(--ouro);outline-offset:2px}
+  .sw .chip{height:96px;display:flex;align-items:flex-end;padding:10px}
+  .sw .chip .role{font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+  .sw .meta{padding:12px 14px}
+  .sw .meta .name{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:1.02rem}
+  .sw .meta .hex{font-family:'Space Mono',monospace;font-size:.74rem;color:var(--suave);margin-top:2px}
+  .color-note{margin-top:22px;color:var(--suave);font-size:.95rem;max-width:60ch}
+  .color-note code{font-family:'Space Mono',monospace;color:var(--ouro);font-size:.86em}
+
+  .ratio{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .ratio .bar{display:flex;height:46px;border-radius:8px;overflow:hidden;border:1px solid var(--anel)}
+  .ratio .bar i{display:block}
+  .ratio .cap{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--suave-2);margin-top:8px;letter-spacing:.08em}
+
+  /* =========================================================
+     TIPOGRAFIA
+  ==========================================================*/
+  .type-row{border-top:1px solid var(--anel);padding:34px 0;display:grid;grid-template-columns:170px 1fr;gap:28px;align-items:baseline}
+  .type-row:first-of-type{border-top:none}
+  .type-meta .tname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.3rem;text-transform:uppercase;letter-spacing:.04em}
+  .type-meta .trole{font-family:'Space Mono',monospace;font-size:.66rem;color:var(--ouro);letter-spacing:.16em;text-transform:uppercase;margin-top:4px}
+  .type-meta .tuse{color:var(--suave-2);font-size:.84rem;margin-top:10px}
+  .specimen .big{display:block;color:var(--claro)}
+  .specimen .scale{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .specimen .scale span{font-family:'Space Mono',monospace;font-size:.66rem;color:var(--suave-2);border:1px solid var(--anel);border-radius:5px;padding:3px 8px}
+  .sp-bebas{font-family:'Bebas Neue',sans-serif;font-size:3.6rem;line-height:.9;letter-spacing:.02em}
+  .sp-cond{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:2rem;text-transform:uppercase;letter-spacing:.03em}
+  .sp-body{font-family:'Barlow',sans-serif;font-weight:400;font-size:1.18rem;line-height:1.55;max-width:52ch}
+  .sp-mono{font-family:'Space Mono',monospace;font-size:1.15rem;letter-spacing:.02em}
+
+  /* =========================================================
+     MOTIVOS / ÍCONES
+  ==========================================================*/
+  .motif-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .motif{border:1px solid var(--anel);border-radius:12px;background:var(--orbita);padding:30px;min-height:200px;display:flex;flex-direction:column}
+  .motif .mv{flex:1;display:grid;place-items:center;margin-bottom:18px}
+  .motif h4{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:1.05rem}
+  .motif p{color:var(--suave);font-size:.88rem;margin-top:4px}
+
+  /* =========================================================
+     UI KIT
+  ==========================================================*/
+  .kit{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .kit-card{background:var(--orbita);border:1px solid var(--anel);border-radius:var(--r);padding:30px}
+  .kit-card .kh{font-family:'Space Mono',monospace;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--suave-2);margin-bottom:22px}
+  .kit-card .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+
+  /* botões */
+  .btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+    border:none;border-radius:9px;padding:13px 26px;font-size:.92rem;cursor:pointer;transition:.2s ease;display:inline-flex;align-items:center;gap:9px}
+  .btn:focus-visible{outline:2px solid var(--brilho);outline-offset:3px}
+  .btn-primary{background:linear-gradient(180deg,var(--brilho),var(--ouro));color:#1a1206;box-shadow:0 6px 24px rgba(217,164,65,.22)}
+  .btn-primary:hover{box-shadow:0 8px 30px rgba(217,164,65,.4);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--claro);border:1px solid var(--anel)}
+  .btn-ghost:hover{border-color:var(--ouro);color:var(--ouro)}
+  .btn-wpp{background:#1f3d2e;color:#bff0cd;border:1px solid #2c5a44}
+  .btn-wpp:hover{background:#244936}
+
+  /* inputs */
+  .field{margin-bottom:16px}
+  .field label{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;color:var(--suave);margin-bottom:7px}
+  .field input{width:100%;background:var(--nucleo);border:1px solid var(--anel);border-radius:9px;padding:12px 14px;color:var(--claro);font-family:'Barlow',sans-serif;font-size:.98rem;transition:border-color .2s}
+  .field input::placeholder{color:var(--suave-2)}
+  .field input:focus{outline:none;border-color:var(--ouro);box-shadow:0 0 0 3px rgba(217,164,65,.12)}
+
+  /* badges */
+  .badge{font-family:'Space Mono',monospace;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px}
+  .badge-novo{background:rgba(217,164,65,.14);color:var(--ouro);border:1px solid rgba(217,164,65,.3)}
+  .badge-estoque{background:rgba(111,168,106,.12);color:var(--sucesso);border:1px solid rgba(111,168,106,.3)}
+  .badge-esgotado{background:rgba(200,88,78,.1);color:var(--erro);border:1px solid rgba(200,88,78,.3)}
+  .badge-b2b{background:var(--orbita-2);color:var(--suave);border:1px solid var(--anel)}
+
+  /* preço */
+  .price-demo{display:flex;align-items:baseline;gap:10px}
+  .price{font-family:'Space Mono',monospace;font-weight:700;font-size:2rem;color:var(--claro)}
+  .price .cents{font-size:1.1rem;color:var(--suave)}
+  .price-old{font-family:'Space Mono',monospace;font-size:1rem;color:var(--suave-2);text-decoration:line-through}
+  .price-tag{font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:.7rem;color:var(--ouro)}
+
+  /* =========================================================
+     PREVIEW DA LOJA — card de produto
+  ==========================================================*/
+  .store-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:8px}
+  .product{background:var(--orbita);border:1px solid var(--anel);border-radius:var(--r);overflow:hidden;transition:.25s ease;display:flex;flex-direction:column}
+  .product:hover{transform:translateY(-6px);border-color:rgba(217,164,65,.5);box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  .product .pimg{aspect-ratio:1;position:relative;display:grid;place-items:center;
+    background:radial-gradient(circle at 50% 40%,#1c160c 0%,#0d0d10 72%);overflow:hidden}
+  .product .pimg .orbit-line{top:50%;left:50%;transform:translate(-50%,-50%);width:80%;height:80%;border-color:#241c10}
+  .product .pimg .bottle{position:relative;z-index:2;width:46px;height:96px;border-radius:8px 8px 5px 5px;
+    background:linear-gradient(160deg,#2a2118,#16120c);border:1px solid #3a2e1d;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .product .pimg .bottle::before{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:18px;height:14px;background:#1a1610;border-radius:4px 4px 0 0;border:1px solid #3a2e1d}
+  .product .pimg .bottle::after{content:"";position:absolute;top:34px;left:8px;right:8px;height:34px;border-radius:4px;background:linear-gradient(180deg,rgba(217,164,65,.25),rgba(217,164,65,.05));border:1px solid rgba(217,164,65,.25)}
+  .product .pbadge{position:absolute;top:12px;left:12px;z-index:3}
+  .product .pbody{padding:18px 18px 20px;display:flex;flex-direction:column;flex:1}
+  .product .pbrand{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ouro);margin-bottom:6px}
+  .product .pname{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:1.18rem;line-height:1.15;color:var(--claro)}
+  .product .pmeta{font-family:'Space Mono',monospace;font-size:.66rem;color:var(--suave-2);margin-top:6px}
+  .product .pfoot{margin-top:16px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+  .product .pprice{font-family:'Space Mono',monospace;font-weight:700;font-size:1.3rem;color:var(--claro)}
+  .product .pprice small{font-size:.7rem;color:var(--suave);font-weight:400}
+  .product .pcart{flex:none;width:42px;height:42px;border-radius:9px;border:none;cursor:pointer;
+    background:linear-gradient(180deg,var(--brilho),var(--ouro));color:#1a1206;font-size:1.1rem;display:grid;place-items:center;transition:.2s}
+  .product .pcart:hover{box-shadow:0 6px 20px rgba(217,164,65,.4)}
+
+  /* =========================================================
+     VOZ & TOM
+  ==========================================================*/
+  .voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .vcard{border:1px solid var(--anel);border-radius:12px;padding:26px;background:var(--orbita)}
+  .vcard .vt{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+  .vcard.say .vt::before{content:"✓";color:var(--sucesso)}
+  .vcard.dont .vt::before{content:"✕";color:var(--erro)}
+  .vcard .vex{padding:14px 0;border-top:1px dashed var(--anel-soft);color:var(--suave);font-size:.96rem}
+  .vcard .vex:first-of-type{border-top:none}
+  .vcard.say .vex{color:var(--claro)}
+
+  /* =========================================================
+     RODAPÉ
+  ==========================================================*/
+  footer{padding:80px 0 60px;border-top:1px solid var(--anel);text-align:center}
+  footer .glyph{margin-bottom:22px}
+  footer .fw{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:.04em}
+  footer .fw .b{color:var(--ouro)}
+  footer .fmeta{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--suave-2);margin-top:14px}
+
+  /* toast */
+  #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ouro);color:#1a1206;font-family:'Barlow Condensed',sans-serif;font-weight:700;
+    text-transform:uppercase;letter-spacing:.06em;padding:11px 22px;border-radius:8px;font-size:.85rem;
+    opacity:0;transition:.3s ease;pointer-events:none;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ————— Página de conceito ————— */
+  .essence{position:relative;text-align:center;padding:74px 20px;margin:60px 0;border:1px solid var(--anel);border-radius:var(--r);overflow:hidden;background:radial-gradient(circle at 50% 50%,#16120b 0%,var(--nucleo) 72%)}
+  .essence .qg{position:absolute;top:50%;left:50%;width:540px;height:540px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(244,206,106,.18),rgba(217,164,65,.05) 40%,transparent 66%);pointer-events:none}
+  .essence .orbit-line{top:50%;left:50%}
+  .essence .e1{width:300px;height:118px;transform:translate(-50%,-50%) rotate(-18deg);border-color:#241c10}
+  .essence .e2{width:520px;height:200px;transform:translate(-50%,-50%) rotate(-18deg);border-color:#19150c}
+  .essence .etag{position:relative;z-index:2}
+  .essence h3{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.6rem,9vw,5.4rem);line-height:.88;letter-spacing:.02em;margin-top:14px;
+    background:linear-gradient(180deg,#FBF4E2,var(--ouro) 80%,var(--brasa));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .essence p{position:relative;z-index:2;color:var(--suave);max-width:46ch;margin:20px auto 0;font-size:1.02rem}
+
+  .manifesto{max-width:62ch;margin:0 auto}
+  .manifesto p{color:var(--suave);font-size:1.06rem;margin-bottom:18px}
+  .manifesto p.big{font-size:1.34rem;line-height:1.5;color:var(--claro);font-weight:300}
+  .manifesto strong{color:var(--claro);font-weight:500}
+  .manifesto .gold{color:var(--ouro);font-weight:600}
+
+  .pillars-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:54px}
+  .pillars-3 .pillar{border-left:2px solid var(--ouro);padding:4px 0 4px 18px}
+  .pillars-3 .pillar h4{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:1.05rem}
+  .pillars-3 .pillar span{color:var(--suave);font-size:.92rem}
+
+  .lex-block{margin-top:84px}
+  .lex-sub{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--suave-2);margin:34px 0 16px}
+  .lex-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .lexcard{background:var(--orbita);border:1px solid var(--anel);border-radius:12px;padding:20px 20px 22px;transition:border-color .2s ease,transform .2s ease}
+  .lexcard:hover{border-color:rgba(217,164,65,.45);transform:translateY(-3px)}
+  .lexcard .lterm{font-family:'Space Mono',monospace;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin-bottom:10px}
+  .lexcard .ltrans{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:1.16rem;color:var(--claro);line-height:1.12}
+  .lexcard .luse{color:var(--suave);font-size:.9rem;margin-top:8px;line-height:1.5}
+
+  .closing{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:60px}
+  .bnote{border:1px solid var(--anel);border-radius:12px;padding:26px 28px;background:var(--orbita)}
+  .bnote .bn-h{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:1.05rem;color:var(--ouro);margin-bottom:12px}
+  .bnote p{color:var(--suave);font-size:.96rem}
+
+  /* ————— Responsivo ————— */
+  @media(max-width:820px){
+    .concept-grid,.kit,.voice-grid,.rules,.ratio,.pillars-3,.closing{grid-template-columns:1fr}
+    .swatches,.motif-grid,.store-preview,.lex-grid{grid-template-columns:1fr 1fr}
+    .logo-variants{grid-template-columns:1fr}
+    .type-row{grid-template-columns:1fr;gap:14px}
+    section{padding:80px 0}
+  }
+  @media(max-width:520px){
+    .swatches,.motif-grid,.store-preview,.lex-grid{grid-template-columns:1fr}
+    .sp-bebas{font-size:2.6rem}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="quasar-glow"></div>
+  <div class="hero-rings">
+    <div class="orbit-line r3"></div>
+    <div class="orbit-line r2"></div>
+    <div class="orbit-line r1"></div>
+  </div>
+  <div class="hero-core"></div>
+  <div class="hero-content">
+    <div class="glyph">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-label="Marca Quasar">
+        <ellipse cx="32" cy="32" rx="28" ry="11" fill="none" stroke="#D9A441" stroke-width="1.4" transform="rotate(-20 32 32)" opacity=".85"/>
+        <ellipse cx="32" cy="32" rx="18" ry="7" fill="none" stroke="#C0772E" stroke-width="1" transform="rotate(-20 32 32)" opacity=".55"/>
+        <circle cx="32" cy="32" r="5" fill="#F4CE6A"/>
+        <circle cx="32" cy="32" r="11" fill="none" stroke="#F4CE6A" stroke-width=".6" opacity=".35"/>
+      </svg>
+    </div>
+    <h1>QUASAR</h1>
+    <div class="sub">Barber Distribuidora</div>
+    <p class="tag">A luz que nasce do escuro. Produtos profissionais de barbearia para quem leva o ofício a sério.</p>
+  </div>
+  <div class="scroll-hint">↓ Sistema de marca</div>
+</header>
+
+<!-- ===================== CONCEITO ===================== -->
+<section id="conceito">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">01 /</span> Conceito</span>
+      <h2>O brilho no<br>centro do escuro</h2>
+      <p>Um quasar é o objeto mais brilhante do universo — luz intensa irradiando do entorno de um buraco negro. A Quasar Barber nasce dessa imagem: a transformação que acontece na cadeira do barbeiro.</p>
+    </div>
+
+    <div class="essence">
+      <div class="qg"></div>
+      <div class="orbit-line e2"></div>
+      <div class="orbit-line e1"></div>
+      <div class="etag">
+        <span class="eyebrow">A ideia central</span>
+        <h3>A luz nasce<br>do escuro</h3>
+        <p>O cliente entra apagado e sai brilhando. Preto e dourado não são só cores — são a física da marca.</p>
+      </div>
+    </div>
+
+    <div class="manifesto">
+      <p class="big">No fim das contas, <span class="gold">ouro de verdade é forjado em estrelas</span> — nasce de pressão e calor extremos, do mesmo tipo de evento que acende um quasar.</p>
+      <p>É por isso que o <strong>dourado</strong> da Quasar tem lastro: não é luxo de fachada, é o material mais precioso que o universo sabe fazer. E o <strong>preto</strong> é o espaço onde essa luz aparece — o silêncio antes do resultado.</p>
+      <p>A Quasar existe pra abastecer quem leva o ofício a sério. Produto profissional, preço de distribuidor, do interior do Maranhão pro Brasil. A gente não vende pomada e óleo — vende o brilho que o barbeiro entrega todo dia.</p>
+    </div>
+
+    <div class="pillars-3">
+      <div class="pillar"><h4>Precisão</h4><span>Linhas limpas, traço firme — como uma navalha e como uma órbita.</span></div>
+      <div class="pillar"><h4>Potência</h4><span>O dourado nunca aparece à toa. Quando aparece, comanda a atenção.</span></div>
+      <div class="pillar"><h4>Profissional</h4><span>Marca de quem abastece o barbeiro, não de quem só vende.</span></div>
+    </div>
+
+    <div class="lex-block">
+      <div class="sec-head" style="margin-bottom:30px">
+        <span class="eyebrow">Léxico cósmico</span>
+        <h2 style="font-size:clamp(2rem,5vw,3.2rem)">Do céu pra cadeira</h2>
+        <p>Cada fenômeno do universo tem uma tradução no mundo do barbeiro. É daqui que saem os nomes de linha, os níveis de produto e o programa de fidelidade.</p>
+      </div>
+
+      <div class="lex-sub">// A marca</div>
+      <div class="lex-grid">
+        <div class="lexcard"><div class="lterm">Quasar</div><div class="ltrans">O resultado, a virada</div><div class="luse">A promessa: o cliente entra no escuro e sai brilhando.</div></div>
+        <div class="lexcard"><div class="lterm">Disco de acreção</div><div class="ltrans">O degradê / o fade</div><div class="luse">O anel de luz girando no buraco negro é, literalmente, o seu fade.</div></div>
+        <div class="lexcard"><div class="lterm">Ouro estelar</div><div class="ltrans">O dourado da marca</div><div class="luse">Ouro de verdade é forjado em explosões de estrelas. Premium com lastro.</div></div>
+      </div>
+
+      <div class="lex-sub">// O produto</div>
+      <div class="lex-grid">
+        <div class="lexcard"><div class="lterm">Gravidade</div><div class="ltrans">A fixação da pomada</div><div class="luse">A força que segura tudo em órbita = nível de hold. Gravidade 1, 2 e 3.</div></div>
+        <div class="lexcard"><div class="lterm">Temperatura estelar</div><div class="ltrans">O acabamento</div><div class="luse">Estrela quente brilha, fria é seca: do matte ao glossy.</div></div>
+        <div class="lexcard"><div class="lterm">Nebulosa</div><div class="ltrans">Espuma, vapor, óleo</div><div class="luse">A nuvem onde nascem estrelas = a linha de preparação antes do corte.</div></div>
+        <div class="lexcard"><div class="lterm">Eclipse</div><div class="ltrans">A linha, o contorno</div><div class="luse">O encontro exato de luz e sombra — a precisão no contorno da barba.</div></div>
+      </div>
+
+      <div class="lex-sub">// O negócio</div>
+      <div class="lex-grid">
+        <div class="lexcard"><div class="lterm">Constelação</div><div class="ltrans">A rede de barbearias</div><div class="luse">Cada cliente é uma estrela; a Quasar liga os pontos no mapa do MA.</div></div>
+        <div class="lexcard"><div class="lterm">Órbita</div><div class="ltrans">A recompra</div><div class="luse">O cliente que volta na hora certa = o programa de fidelidade Órbita.</div></div>
+        <div class="lexcard"><div class="lterm">Supernova</div><div class="ltrans">O lançamento / a promo</div><div class="luse">A explosão que ilumina tudo de uma vez: drops e campanhas.</div></div>
+      </div>
+    </div>
+
+    <div class="closing">
+      <div class="bnote">
+        <div class="bn-h">A promessa</div>
+        <p>Brilho profissional, sempre à mão. A barbearia não para, porque a reposição é rápida e o produto é de confiança.</p>
+      </div>
+      <div class="bnote">
+        <div class="bn-h">Galáxia Quasar</div>
+        <p>Quasar Barber e Quasar Soluções são dois sistemas na mesma galáxia — espaço pra crescer sem nunca trocar de marca.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== LOGO ===================== -->
+<section id="logo">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">02 /</span> Marca</span>
+      <h2>Logotipo & uso</h2>
+      <p>O lockup principal combina o glifo orbital (núcleo + disco) com o wordmark em Bebas Neue. "BARBER" muda de cor para marcar o ponto de brilho.</p>
+    </div>
+
+    <div class="logo-stage">
+      <div class="quasar-glow"></div>
+      <div class="logo-lockup">
+        <svg width="52" height="52" viewBox="0 0 64 64" style="margin:0 auto 18px" aria-hidden="true">
+          <ellipse cx="32" cy="32" rx="28" ry="11" fill="none" stroke="#D9A441" stroke-width="1.4" transform="rotate(-20 32 32)" opacity=".85"/>
+          <circle cx="32" cy="32" r="5" fill="#F4CE6A"/>
+        </svg>
+        <div class="lw">QUASAR <span class="b">BARBER</span></div>
+        <div class="lt">Distribuidora Profissional</div>
+      </div>
+    </div>
+
+    <div class="logo-variants">
+      <div class="lv">
+        <span class="vlabel">Principal · fundo escuro</span>
+        <div class="mini">QUASAR <span class="b">BARBER</span></div>
+      </div>
+      <div class="lv on-light">
+        <span class="vlabel">Sobre claro</span>
+        <div class="mini">QUASAR <span class="b">BARBER</span></div>
+      </div>
+      <div class="lv">
+        <span class="vlabel">Glifo isolado · avatar</span>
+        <svg width="46" height="46" viewBox="0 0 64 64" aria-hidden="true">
+          <ellipse cx="32" cy="32" rx="28" ry="11" fill="none" stroke="#D9A441" stroke-width="1.6" transform="rotate(-20 32 32)"/>
+          <ellipse cx="32" cy="32" rx="18" ry="7" fill="none" stroke="#C0772E" stroke-width="1.1" transform="rotate(-20 32 32)" opacity=".6"/>
+          <circle cx="32" cy="32" r="5" fill="#F4CE6A"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="rules">
+      <div class="rule do">
+        <div class="rh"><span class="ico">✓</span><span>Pode</span></div>
+        <ul>
+          <li>Usar o glifo sozinho como avatar no Instagram e WhatsApp.</li>
+          <li>Manter área de respiro mínima = altura da letra "Q" em volta do logo.</li>
+          <li>Aplicar sobre foto escura, desde que o dourado fique legível.</li>
+        </ul>
+      </div>
+      <div class="rule dont">
+        <div class="rh"><span class="ico">✕</span><span>Não pode</span></div>
+        <ul>
+          <li>Trocar o dourado por outra cor ou usar degradê arco-íris.</li>
+          <li>Distorcer, inclinar ou aplicar sombra/contorno no wordmark.</li>
+          <li>Colocar sobre fundo claro saturado que mate o contraste.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== CORES ===================== -->
+<section id="cores">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">03 /</span> Cor</span>
+      <h2>Paleta</h2>
+      <p>Clique em qualquer cor para copiar o HEX. O dourado é a estrela — use com disciplina: ele perde força se aparecer em tudo.</p>
+    </div>
+
+    <div class="swatches" id="swatches"></div>
+
+    <p class="color-note">Regra de proporção: a interface vive no <code>--nucleo</code> e <code>--orbita</code>. O dourado entra como acento — botões, preços em destaque, links, estados ativos. Cobre é só para profundidade em degradês e brilhos, nunca para texto.</p>
+
+    <div class="ratio">
+      <div>
+        <div class="bar">
+          <i style="background:var(--nucleo);width:62%"></i>
+          <i style="background:var(--orbita);width:26%"></i>
+          <i style="background:var(--ouro);width:9%"></i>
+          <i style="background:var(--brasa);width:3%"></i>
+        </div>
+        <div class="cap">PROPORÇÃO IDEAL · 62 / 26 / 9 / 3</div>
+      </div>
+      <div>
+        <div class="bar">
+          <i style="background:var(--claro);width:70%"></i>
+          <i style="background:var(--suave);width:22%"></i>
+          <i style="background:var(--suave-2);width:8%"></i>
+        </div>
+        <div class="cap">HIERARQUIA DE TEXTO · claro / suave / legenda</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== TIPOGRAFIA ===================== -->
+<section id="tipografia">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">04 /</span> Tipografia</span>
+      <h2>Sistema tipográfico</h2>
+      <p>Quatro papéis, cada um com uma função clara. O segredo é não misturar: número e preço sempre em mono, título sempre em Bebas ou Barlow Condensed.</p>
+    </div>
+
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="tname">Bebas Neue</div>
+        <div class="trole">Display</div>
+        <div class="tuse">Hero, títulos de seção, o wordmark. Impacto máximo, usado grande.</div>
+      </div>
+      <div class="specimen">
+        <span class="big sp-bebas">CORTE NA RÉGUA</span>
+        <div class="scale"><span>96px</span><span>64px</span><span>48px</span><span>tracking +2%</span></div>
+      </div>
+    </div>
+
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="tname">Barlow Condensed</div>
+        <div class="trole">Heading / UI</div>
+        <div class="tuse">Botões, nomes de produto, rótulos. Condensado, caixa-alta com tracking.</div>
+      </div>
+      <div class="specimen">
+        <span class="big sp-cond">Pomada Modeladora Matte</span>
+        <div class="scale"><span>Bold 700</span><span>SemiBold 600</span><span>UPPERCASE</span></div>
+      </div>
+    </div>
+
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="tname">Barlow</div>
+        <div class="trole">Corpo</div>
+        <div class="tuse">Descrições, textos longos, parágrafos. Leve e legível na tela.</div>
+      </div>
+      <div class="specimen">
+        <span class="big sp-body">Linha profissional para barbearia. Fixação forte, acabamento seco e brilho controlado — feito para durar o dia inteiro de trabalho.</span>
+        <div class="scale"><span>Regular 400</span><span>Light 300</span><span>1.18rem / 1.55</span></div>
+      </div>
+    </div>
+
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="tname">Space Mono</div>
+        <div class="trole">Dados</div>
+        <div class="tuse">Preços, SKU, quantidades, rótulos técnicos. O "mostrador do instrumento".</div>
+      </div>
+      <div class="specimen">
+        <span class="big sp-mono">R$ 38,90 &nbsp;·&nbsp; SKU QB-0145 &nbsp;·&nbsp; 12un</span>
+        <div class="scale"><span>Bold 700</span><span>Regular 400</span><span>preços & códigos</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== MOTIVOS ===================== -->
+<section id="motivos">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">05 /</span> Elementos</span>
+      <h2>Motivos gráficos</h2>
+      <p>Três recursos visuais que tornam a marca reconhecível mesmo sem o logo aparecer.</p>
+    </div>
+    <div class="motif-grid">
+      <div class="motif">
+        <div class="mv">
+          <svg width="120" height="90" viewBox="0 0 120 90" aria-hidden="true">
+            <ellipse cx="60" cy="45" rx="50" ry="20" fill="none" stroke="#D9A441" stroke-width="1.4" transform="rotate(-18 60 45)"/>
+            <ellipse cx="60" cy="45" rx="32" ry="12" fill="none" stroke="#C0772E" stroke-width="1" transform="rotate(-18 60 45)" opacity=".6"/>
+            <circle cx="60" cy="45" r="4" fill="#F4CE6A"/>
+          </svg>
+        </div>
+        <h4>Arcos orbitais</h4>
+        <p>Linhas elípticas finas que cruzam fundos e seções. O disco de acreção do quasar e a curva limpa de um corte.</p>
+      </div>
+      <div class="motif">
+        <div class="mv">
+          <div style="width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(244,206,106,.5),rgba(217,164,65,.12) 50%,transparent 70%)"></div>
+        </div>
+        <h4>Brilho radial</h4>
+        <p>O glow dourado atrás do núcleo. Usado no hero, atrás do logo e como estado "ativo". Sempre suave, nunca chapado.</p>
+      </div>
+      <div class="motif">
+        <div class="mv">
+          <svg width="110" height="60" viewBox="0 0 110 60" aria-hidden="true">
+            <line x1="6" y1="30" x2="44" y2="30" stroke="#2A2A31" stroke-width="2"/>
+            <circle cx="55" cy="30" r="3.5" fill="#D9A441"/>
+            <line x1="66" y1="30" x2="104" y2="30" stroke="#2A2A31" stroke-width="2"/>
+          </svg>
+        </div>
+        <h4>Divisor de núcleo</h4>
+        <p>Linha fina com um ponto dourado no centro. Separa seções e listas sem pesar — referência a um eixo orbital.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== UI KIT ===================== -->
+<section id="kit">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">06 /</span> Interface</span>
+      <h2>UI Kit da loja</h2>
+      <p>Componentes prontos para virar código. Tudo usando as variáveis CSS da paleta — é só copiar os tokens pro seu projeto React.</p>
+    </div>
+
+    <div class="kit">
+      <div class="kit-card">
+        <div class="kh">// Botões</div>
+        <div class="row">
+          <button class="btn btn-primary">Adicionar ao carrinho</button>
+          <button class="btn btn-ghost">Ver detalhes</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-wpp">◆ Comprar no WhatsApp</button>
+        </div>
+        <div class="kh" style="margin-top:26px">// Badges</div>
+        <div class="row">
+          <span class="badge badge-novo">★ Novo</span>
+          <span class="badge badge-estoque">Em estoque</span>
+          <span class="badge badge-esgotado">Esgotado</span>
+          <span class="badge badge-b2b">Preço B2B</span>
+        </div>
+      </div>
+
+      <div class="kit-card">
+        <div class="kh">// Campos de formulário</div>
+        <div class="field">
+          <label for="f1">Nome da barbearia</label>
+          <input id="f1" type="text" placeholder="Ex.: Studio Navalha de Ouro">
+        </div>
+        <div class="field">
+          <label for="f2">WhatsApp</label>
+          <input id="f2" type="text" placeholder="(99) 9 9999-9999">
+        </div>
+        <div class="kh" style="margin-top:24px">// Tratamento de preço</div>
+        <div class="price-demo">
+          <span class="price-tag">B2B</span>
+          <span class="price">R$ 32<span class="cents">,90</span></span>
+          <span class="price-old">R$ 41,90</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== PREVIEW DA LOJA ===================== -->
+<section id="loja">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">07 /</span> Aplicação</span>
+      <h2>A loja em ação</h2>
+      <p>Como os cards de produto ficam com a identidade montada. Passe o mouse para ver a interação.</p>
+    </div>
+
+    <div class="store-preview">
+      <div class="product">
+        <div class="pimg">
+          <div class="orbit-line"></div>
+          <div class="bottle"></div>
+          <div class="pbadge"><span class="badge badge-novo">★ Novo</span></div>
+        </div>
+        <div class="pbody">
+          <div class="pbrand">Fox For Men</div>
+          <div class="pname">Pomada Modeladora Matte</div>
+          <div class="pmeta">SKU QB-0145 · 120g</div>
+          <div class="pfoot">
+            <div class="pprice">R$ 32,90 <small>/un</small></div>
+            <button class="pcart" aria-label="Adicionar">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product">
+        <div class="pimg">
+          <div class="orbit-line"></div>
+          <div class="bottle"></div>
+          <div class="pbadge"><span class="badge badge-estoque">Em estoque</span></div>
+        </div>
+        <div class="pbody">
+          <div class="pbrand">QOD Barber Shop</div>
+          <div class="pname">Óleo para Barba Premium</div>
+          <div class="pmeta">SKU QB-0212 · 30ml</div>
+          <div class="pfoot">
+            <div class="pprice">R$ 45,00 <small>/un</small></div>
+            <button class="pcart" aria-label="Adicionar">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product">
+        <div class="pimg">
+          <div class="orbit-line"></div>
+          <div class="bottle"></div>
+          <div class="pbadge"><span class="badge badge-b2b">Preço B2B</span></div>
+        </div>
+        <div class="pbody">
+          <div class="pbrand">Fox For Men</div>
+          <div class="pname">Kit Barbearia · 12 peças</div>
+          <div class="pmeta">SKU QB-0301 · atacado</div>
+          <div class="pfoot">
+            <div class="pprice">R$ 289,90 <small>/kit</small></div>
+            <button class="pcart" aria-label="Adicionar">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- ===================== VOZ & TOM ===================== -->
+<section id="voz">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">08 /</span> Voz</span>
+      <h2>Voz & tom</h2>
+      <p>Direto, profissional e com respeito pelo ofício. Fala de barbeiro pra barbeiro — sem firula, sem promessa vazia.</p>
+    </div>
+    <div class="voice-grid">
+      <div class="vcard say">
+        <div class="vt">A Quasar fala assim</div>
+        <div class="vex">"Fixação que aguenta o dia inteiro de cadeira."</div>
+        <div class="vex">"Reposição rápida pra barbearia não parar."</div>
+        <div class="vex">"Produto profissional, preço de distribuidor."</div>
+      </div>
+      <div class="vcard dont">
+        <div class="vt">A Quasar não fala assim</div>
+        <div class="vex">"O MELHOR produto do MERCADO!!! 🔥🔥🔥"</div>
+        <div class="vex">"Compre já e transforme sua vida hoje mesmo."</div>
+        <div class="vex">"Promoção imperdível, últimas unidades correndo!"</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RODAPÉ ===================== -->
+<footer>
+  <div class="wrap">
+    <div class="glyph">
+      <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
+        <ellipse cx="32" cy="32" rx="28" ry="11" fill="none" stroke="#D9A441" stroke-width="1.4" transform="rotate(-20 32 32)"/>
+        <circle cx="32" cy="32" r="5" fill="#F4CE6A"/>
+      </svg>
+    </div>
+    <div class="fw">QUASAR <span class="b">BARBER</span></div>
+    <div class="fmeta">Identidade Visual · Codó/MA · Sistema v1</div>
+  </div>
+</footer>
+
+<div id="toast">HEX copiado</div>
+
+<script>
+  const palette = [
+    {name:'Núcleo', hex:'#0A0A0C', role:'Fundo principal', text:'#F2EFE7'},
+    {name:'Órbita', hex:'#141418', role:'Superfície / card', text:'#F2EFE7'},
+    {name:'Anel', hex:'#2A2A31', role:'Bordas / divisores', text:'#F2EFE7'},
+    {name:'Ouro Quasar', hex:'#D9A441', role:'Acento primário', text:'#1A1206'},
+    {name:'Brasa', hex:'#C0772E', role:'Cobre / profundidade', text:'#1A1206'},
+    {name:'Brilho', hex:'#F4CE6A', role:'Destaque luminoso', text:'#1A1206'},
+    {name:'Claro', hex:'#F2EFE7', role:'Texto principal', text:'#1A1206'},
+    {name:'Suave', hex:'#989589', role:'Texto secundário', text:'#1A1206'},
+  ];
+
+  const cont = document.getElementById('swatches');
+  palette.forEach(c=>{
+    const el = document.createElement('button');
+    el.className = 'sw';
+    el.setAttribute('aria-label', `Copiar ${c.name} ${c.hex}`);
+    el.innerHTML = `
+      <span class="chip" style="background:${c.hex};color:${c.text}"><span class="role">${c.role}</span></span>
+      <span class="meta"><span class="name">${c.name}</span><span class="hex">${c.hex}</span></span>`;
+    el.addEventListener('click',()=>copyHex(c.hex));
+    cont.appendChild(el);
+  });
+
+  const toast = document.getElementById('toast');
+  let t;
+  function copyHex(hex){
+    navigator.clipboard?.writeText(hex).then(()=>{
+      toast.textContent = hex + ' copiado';
+      toast.classList.add('show');
+      clearTimeout(t);
+      t = setTimeout(()=>toast.classList.remove('show'),1400);
+    }).catch(()=>{});
+  }
+</script>
+</body>
+</html>

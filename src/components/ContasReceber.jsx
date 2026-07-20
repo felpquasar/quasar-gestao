@@ -27,7 +27,7 @@ const diasAtraso = (vencimento) =>
 
 const saldoCr = (cr) => Math.max(0, Number(cr.valor) - Number(cr.valor_pago || 0));
 
-const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) => {
+const ContasReceber = ({ t = (k) => k, contasReceber, setContasReceber, clientes, notify }) => {
   const isMobile = useMobile();
   const [filtro, setFiltro] = useState("todos");
   const [modalNova, setModalNova] = useState(false);
@@ -162,7 +162,7 @@ const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) =>
 
   const cobrarCliente = (cr) => {
     const cli = clientes.find(c => c.id === cr.cliente_id);
-    if (!cli?.telefone) { notify("Cliente sem telefone cadastrado.", "error"); return; }
+    if (!cli?.telefone) { notify(`${t("cliente")} sem telefone cadastrado.`, "error"); return; }
     const tel = String(cli.telefone).replace(/\D/g, '');
     const numero = tel.startsWith('55') ? tel : '55' + tel;
     const partes = cr.data_vencimento.split('-');
@@ -179,7 +179,7 @@ const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) =>
   };
 
   const dispararCobranca = () => {
-    setConfirmState({ msg: `Enviar cobrança via WhatsApp para ${totais.qtdVencido} cliente(s) em atraso?`, danger: false, onConfirm: async () => {
+    setConfirmState({ msg: `Enviar cobrança via WhatsApp para ${totais.qtdVencido} ${t("cliente").toLowerCase()}(s) em atraso?`, danger: false, onConfirm: async () => {
       const url = process.env.REACT_APP_N8N_WEBHOOK_URL;
       if (!url) { notify("Defina REACT_APP_N8N_WEBHOOK_URL no .env", "error"); return; }
       setEnviando(true);
@@ -263,7 +263,7 @@ const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) =>
           <thead>
             <tr style={{ background: "#111" }}>
               {[
-                { label: "Cliente", col: "cliente" },
+                { label: t("cliente"), col: "cliente" },
                 { label: "Descrição", col: null },
                 { label: "Forma", col: null },
                 { label: "Vencimento", col: "vencimento" },
@@ -356,9 +356,9 @@ const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) =>
 
       {modalEditar && (
         <Modal title="Editar Cobrança" onClose={() => setModalEditar(null)}>
-          <Field label="Cliente *">
+          <Field label={`${t("cliente")} *`}>
             <select style={inp} value={editForm.clienteId} onChange={e => setEditForm({ ...editForm, clienteId: e.target.value })}>
-              <option value="">Selecionar cliente...</option>
+              <option value="">Selecionar {t("cliente").toLowerCase()}...</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Field>
@@ -401,9 +401,9 @@ const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) =>
       {/* Modal nova cobrança */}
       {modalNova && (
         <Modal title="Nova Cobrança" onClose={() => setModalNova(false)}>
-          <Field label="Cliente *">
+          <Field label={`${t("cliente")} *`}>
             <select style={inp} value={form.clienteId} onChange={e => setForm({ ...form, clienteId: e.target.value })}>
-              <option value="">Selecionar cliente...</option>
+              <option value="">Selecionar {t("cliente").toLowerCase()}...</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Field>
@@ -452,7 +452,7 @@ const ContasReceber = ({ contasReceber, setContasReceber, clientes, notify }) =>
         return (
           <Modal title="Registrar Recebimento" onClose={() => setModalPagar(null)}>
             <div style={{ background: "#111", borderRadius: 8, padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
-              <div style={{ fontSize: ".72rem", color: "#555", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 4 }}>Cliente</div>
+              <div style={{ fontSize: ".72rem", color: "#555", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 4 }}>{t("cliente")}</div>
               <div style={{ fontSize: "1rem", color: "#e0e0e0", fontWeight: 600 }}>{clientes.find(c => c.id === modalPagar.cliente_id)?.nome}</div>
               {modalPagar.descricao && <div style={{ fontSize: ".82rem", color: "#666", marginTop: 3 }}>{modalPagar.descricao}</div>}
               <div style={{ display: "flex", gap: 20, marginTop: 12, flexWrap: "wrap" }}>
