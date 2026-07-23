@@ -29,7 +29,7 @@ const PlanoTratamento = ({ clienteId, planosTratamento, setPlanosTratamento, fas
   const abrir = (p = null) => {
     setEditando(p);
     setForm(p
-      ? { titulo: p.titulo, status: p.status, data_inicio: p.data_inicio || "", previsao_termino: p.previsao_termino || "", valor_total: p.valor_total ? String(p.valor_total) : "", observacoes: p.observacoes || "" }
+      ? { titulo: p.titulo, status: p.status, data_inicio: p.data_inicio || "", previsao_termino: p.previsao_termino || "", valor_total: p.valor_total != null ? String(p.valor_total) : "", observacoes: p.observacoes || "" }
       : { titulo: "", status: "ativo", data_inicio: today(), previsao_termino: "", valor_total: "", observacoes: "" });
     setModal(true);
   };
@@ -40,7 +40,7 @@ const PlanoTratamento = ({ clienteId, planosTratamento, setPlanosTratamento, fas
     const payload = {
       titulo: form.titulo.trim(), status: form.status,
       data_inicio: form.data_inicio || null, previsao_termino: form.previsao_termino || null,
-      valor_total: form.valor_total ? Number(form.valor_total) : null,
+      valor_total: form.valor_total !== "" ? Number(form.valor_total) : null,
       observacoes: form.observacoes || null,
     };
     if (editando) {
@@ -99,7 +99,7 @@ const PlanoTratamento = ({ clienteId, planosTratamento, setPlanosTratamento, fas
               <div>
                 <div style={{ fontSize: ".9rem", fontWeight: 600, color: "#ccc" }}>{p.titulo}</div>
                 <div style={{ fontSize: ".7rem", color: "#555", marginTop: 2 }}>
-                  {p.data_inicio && `início ${p.data_inicio}`}{p.previsao_termino && ` · previsão ${p.previsao_termino}`}{p.valor_total ? ` · ${fmt(p.valor_total)}` : ""}
+                  {p.data_inicio && `início ${p.data_inicio}`}{p.previsao_termino && ` · previsão ${p.previsao_termino}`}{p.valor_total != null ? ` · ${fmt(p.valor_total)}` : ""}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>

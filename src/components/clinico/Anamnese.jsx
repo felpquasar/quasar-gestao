@@ -16,8 +16,11 @@ const Anamnese = ({ clienteId, anamneses, setAnamneses, notify }) => {
     setForm(existente
       ? { ...campoVazio, ...(existente.dados || {}), observacoes: existente.observacoes || "" }
       : campoVazio);
+    // Ressincroniza quando o registro chega depois do mount (useClinicoStore
+    // carrega async) — sem isso o form ficava em branco e salvar() sobrescrevia
+    // a anamnese real. Depender só do id (não do objeto inteiro) evita loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clienteId]);
+  }, [clienteId, existente?.id]);
 
   const salvar = async () => {
     setSaving(true);

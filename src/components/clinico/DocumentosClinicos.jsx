@@ -20,6 +20,9 @@ const DocumentosClinicos = ({ tenantId, clienteId, documentosClinicos, setDocume
   const fileRef = useRef(null);
 
   const lista = documentosClinicos.filter(d => d.cliente_id === clienteId);
+  // Chave estável pelos paths reais — lista.length não detecta troca (delete +
+  // upload que mantém a contagem igual faria o efeito não disparar de novo).
+  const chavesLista = lista.map(d => d.storage_path).join("|");
 
   useEffect(() => {
     let ativo = true;
@@ -34,7 +37,7 @@ const DocumentosClinicos = ({ tenantId, clienteId, documentosClinicos, setDocume
     })();
     return () => { ativo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lista.length, clienteId]);
+  }, [chavesLista, clienteId]);
 
   const enviar = async (e) => {
     const file = e.target.files?.[0];
@@ -57,11 +60,11 @@ const DocumentosClinicos = ({ tenantId, clienteId, documentosClinicos, setDocume
 
   const excluir = (doc) => {
     setConfirmState({ msg: "Excluir este documento?", onConfirm: async () => {
-      await supabase.storage.from(BUCKET).remove([doc.storage_path]);
+      const { error: storageErro } = await supabase.storage.from(BUCKET).remove([doc.storage_path]);
       const { error } = await supabase.from("documentos_clinicos").delete().eq("id", doc.id);
       if (error) { notify("Erro ao excluir.", "error"); return; }
       setDocumentosClinicos(prev => prev.filter(d => d.id !== doc.id));
-      notify("Documento excluído.");
+      notify(storageErro ? "Registro excluído, mas o arquivo pode ter ficado no armazenamento." : "Documento excluído.", storageErro ? "error" : "ok");
     }});
   };
 

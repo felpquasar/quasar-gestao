@@ -64,7 +64,7 @@ export default function App() {
     anamneses, setAnamneses, evolucoes, setEvolucoes,
     planosTratamento, setPlanosTratamento, fasesTratamento, setFasesTratamento,
     documentosClinicos, setDocumentosClinicos, odontogramas, setOdontogramas,
-  } = useClinicoStore(tenantId, segmento);
+  } = useClinicoStore(tenantId, segmento, notify);
 
   const qtdVencidas = contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today()).length
     + contasPagar.filter(cp => cp.status !== "pago" && cp.data_vencimento < today()).length;

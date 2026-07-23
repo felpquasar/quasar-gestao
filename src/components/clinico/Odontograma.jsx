@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { inp, btn } from '../../styles/shared';
 import Modal from '../ui/Modal';
@@ -11,14 +11,23 @@ import Spinner from '../ui/Spinner';
 const ARCADA_SUP = ["18", "17", "16", "15", "14", "13", "12", "11", "21", "22", "23", "24", "25", "26", "27", "28"];
 const ARCADA_INF = ["48", "47", "46", "45", "44", "43", "42", "41", "31", "32", "33", "34", "35", "36", "37", "38"];
 const FACES = [["vestibular", "Vestibular"], ["oclusal", "Oclusal"], ["lingual", "Lingual/Palatina"], ["mesial", "Mesial"], ["distal", "Distal"]];
-const CONDICOES = [["higido", "Hígido"], ["cariado", "Cariado"], ["restaurado", "Restaurado"], ["ausente", "Ausente"], ["extraido", "Extraído"], ["implante", "Implante"]];
-const COR_CONDICAO = { higido: "#333", cariado: "#e05a5a", restaurado: "#6b9fd4", ausente: "#3a3a3a", extraido: "#e8a020", implante: "#4caf82" };
+// [chave, rótulo, cor, gravidade] — fonte única; maior gravidade = pior condição
+// (evita manter uma 4ª lista separada de ordem, como acontecia antes).
+const CONDICOES = [
+  ["higido", "Hígido", "#333", 0],
+  ["restaurado", "Restaurado", "#6b9fd4", 1],
+  ["implante", "Implante", "#4caf82", 2],
+  ["cariado", "Cariado", "#e05a5a", 3],
+  ["ausente", "Ausente", "#3a3a3a", 4],
+  ["extraido", "Extraído", "#e8a020", 5],
+];
+const COR_CONDICAO = Object.fromEntries(CONDICOES.map(([v, , cor]) => [v, cor]));
+const GRAVIDADE = Object.fromEntries(CONDICOES.map(([v, , , g]) => [v, g]));
 
 const piorCondicao = (faces = {}) => {
-  const ordem = ["extraido", "ausente", "cariado", "implante", "restaurado", "higido"];
   const presentes = Object.values(faces).filter(Boolean);
   if (presentes.length === 0) return null;
-  return ordem.find(c => presentes.includes(c)) || presentes[0];
+  return presentes.reduce((pior, c) => (GRAVIDADE[c] > GRAVIDADE[pior] ? c : pior));
 };
 
 const Odontograma = ({ clienteId, odontogramas, setOdontogramas, notify }) => {
@@ -27,7 +36,13 @@ const Odontograma = ({ clienteId, odontogramas, setOdontogramas, notify }) => {
   const [statusGeral, setStatusGeral] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const registro = (numero) => odontogramas.find(o => o.cliente_id === clienteId && o.dente_numero === numero);
+  // Escopado ao paciente uma vez — evita varrer os odontogramas do tenant
+  // inteiro em cada um dos 32 botões de dente a cada render.
+  const meusRegistros = useMemo(
+    () => odontogramas.filter(o => o.cliente_id === clienteId),
+    [odontogramas, clienteId]
+  );
+  const registro = (numero) => meusRegistros.find(o => o.dente_numero === numero);
 
   const abrir = (numero) => {
     const r = registro(numero);
