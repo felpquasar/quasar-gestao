@@ -118,17 +118,18 @@ export default function App() {
 
   // `feature` casa com o mapa CAPS (src/lib/planos.js). Abas de plano superior
   // somem do menu pra quem não tem (can() => false), mas o render ainda usa
-  // <Gate> como segunda linha de defesa.
+  // <Gate> como segunda linha de defesa. `ocultoEm` esconde a aba pra um
+  // segmento específico (ex: loja padrão não agenda nem vende pacote).
   const nav = [
     { id: "dashboard", label: "Dashboard", icon: "dashboard", feature: "dashboard" },
     { id: "estoque", label: "Estoque", icon: "box", feature: "estoque" },
     { id: "clientes", label: t("clientes"), icon: "users", feature: "clientes" },
     { id: "vendas", label: "Vendas", icon: "cart", feature: "vendas" },
-    { id: "agenda", label: "Agenda", icon: "calendar", feature: "agenda" },
-    { id: "pacotes", label: t("pacote"), icon: "pacote", feature: "pacotes" },
+    { id: "agenda", label: "Agenda", icon: "calendar", feature: "agenda", ocultoEm: ["loja_padrao"] },
+    { id: "pacotes", label: t("pacote"), icon: "pacote", feature: "pacotes", ocultoEm: ["loja_padrao"] },
     { id: "financeiro", label: "Financeiro", icon: "money", badge: qtdVencidas, feature: "financeiro" },
     { id: "relatorios", label: "Relatórios", icon: "chart", feature: "relatorios" },
-  ].filter(n => can(plano, n.feature));
+  ].filter(n => can(plano, n.feature) && !(n.ocultoEm || []).includes(segmento));
 
   if (session === undefined) return (
     <><style>{styles}</style>
