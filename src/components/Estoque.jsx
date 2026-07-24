@@ -50,7 +50,7 @@ const Estoque = ({ produtos, setProdutos, setMovimentos, notify, fornecedores, s
     const custoNovo = Number(editForm.custo);
     const precoNovo = Number(editForm.preco);
     const { data, error } = await supabase.from("produtos").update({ nome: editForm.nome.trim(), categoria: editForm.categoria, unidade: editForm.unidade, custo: custoNovo, preco: precoNovo }).eq("id", modalEdit.id).select().single();
-    if (error) { setSaving(false); notify("Erro ao editar produto", "error"); return; }
+    if (error) { setSaving(false); notify(error.code === "23505" ? `"${editForm.nome.trim()}" já está cadastrado.` : "Erro ao editar produto", "error"); return; }
     if (custoAnterior !== custoNovo || precoAnterior !== precoNovo) {
       await supabase.from("historico_precos").insert({ produto_id: modalEdit.id, custo_anterior: custoAnterior, custo_novo: custoNovo, preco_anterior: precoAnterior, preco_novo: precoNovo });
     }
@@ -67,7 +67,7 @@ const Estoque = ({ produtos, setProdutos, setMovimentos, notify, fornecedores, s
     setSaving(true);
     const { data, error } = await supabase.from("produtos").insert({ nome: form.nome.trim(), categoria: form.categoria, unidade: form.unidade, estoque: Number(form.estoque), custo: Number(form.custo), preco: Number(form.preco) }).select().single();
     setSaving(false);
-    if (error) { notify("Erro ao salvar produto", "error"); return; }
+    if (error) { notify(error.code === "23505" ? `"${form.nome.trim()}" já está cadastrado.` : "Erro ao salvar produto", "error"); return; }
     setProdutos(prev => [...prev, data].sort((a, b) => a.nome.localeCompare(b.nome)));
     setModalProd(false); setForm({ nome: "", categoria: "", unidade: "un", estoque: 0, custo: "", preco: "" }); notify("Produto cadastrado.");
   };

@@ -27,7 +27,11 @@ const Onboarding = ({ email, onLogout, onClose, onProdutosImportados }) => {
     }));
     const { data, error } = await supabase.from("produtos").insert(payload).select();
     setLoading(false);
-    if (error) { setErro(error.message || "Não foi possível importar o catálogo."); return; }
+    if (error) {
+      const msg = error.code === "23505" ? "Catálogo já foi importado anteriormente." : (error.message || "Não foi possível importar o catálogo.");
+      setErro(msg);
+      return;
+    }
     onProdutosImportados?.(data || []);
     setImportados((data || []).length);
   };
