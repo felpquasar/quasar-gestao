@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { inp } from "../styles/shared";
 import { validarSenha, REGRA_SENHA } from "../lib/senha";
 import Icon from "./ui/Icon";
 import Spinner from "./ui/Spinner";
+import Turnstile from "./ui/Turnstile";
 
 const LOGO = "/logo.png";
+const TURNSTILE_SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY;
 
 const Login = ({ onLogin }) => {
   const [modo, setModo] = useState("login"); // "login" | "signup" | "recuperar"
@@ -15,26 +17,36 @@ const Login = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [info, setInfo] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const turnstileRef = useRef(null);
 
   const isSignup = modo === "signup";
   const isRecuperar = modo === "recuperar";
 
+  // Token do Turnstile é de uso único — sempre pedir um novo depois de
+  // qualquer tentativa (sucesso ou erro) ou troca de modo.
+  const resetCaptcha = () => {
+    setCaptchaToken("");
+    turnstileRef.current?.reset();
+  };
+
   const trocarModo = () => {
     setModo(isSignup ? "login" : "signup");
-    setErro(""); setInfo("");
+    setErro(""); setInfo(""); resetCaptcha();
   };
 
   const abrirRecuperar = () => {
     setModo("recuperar");
-    setErro(""); setInfo("");
+    setErro(""); setInfo(""); resetCaptcha();
   };
 
   const enviarRecuperacao = async (e) => {
     e?.preventDefault();
     if (!email) { setErro("Informe seu email."); return; }
+    if (!captchaToken) { setErro("Aguarde a verificação de segurança carregar."); return; }
     setLoading(true); setErro(""); setInfo("");
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    setLoading(false);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { captchaToken });
+    setLoading(false); resetCaptcha();
     if (error) { setErro(error.message || "Não foi possível enviar o email."); return; }
     setInfo("Se esse email tiver cadastro, enviamos um link pra redefinir a senha.");
   };
@@ -43,13 +55,14 @@ const Login = ({ onLogin }) => {
     e?.preventDefault();
     if (isRecuperar) return enviarRecuperacao(e);
     if (!email || !senha) { setErro("Preencha email e senha."); return; }
+    if (!captchaToken) { setErro("Aguarde a verificação de segurança carregar."); return; }
     setLoading(true); setErro(""); setInfo("");
 
     if (isSignup) {
       const erroSenha = validarSenha(senha);
       if (erroSenha) { setLoading(false); setErro(erroSenha); return; }
-      const { data, error } = await supabase.auth.signUp({ email, password: senha });
-      setLoading(false);
+      const { data, error } = await supabase.auth.signUp({ email, password: senha, options: { captchaToken } });
+      setLoading(false); resetCaptcha();
       if (error) { setErro(error.message || "Não foi possível criar a conta."); return; }
       // Confirmação de email ligada: sem sessão imediata.
       if (!data.session) {
@@ -61,8 +74,8 @@ const Login = ({ onLogin }) => {
       return;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha, options: { captchaToken } });
+    setLoading(false); resetCaptcha();
     if (error) { setErro("Email ou senha incorretos."); return; }
     onLogin(data.session);
   };
@@ -117,6 +130,9 @@ const Login = ({ onLogin }) => {
               <Icon name="warn" size={15} /> {erro}
             </div>
           )}
+          <div style={{ marginBottom: "1rem", display: "flex", justifyContent: "center" }}>
+            <Turnstile ref={turnstileRef} siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} />
+          </div>
           <button type="submit" disabled={loading}
             style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", cursor: loading ? "not-allowed" : "pointer", background: "#ffbf00", color: "#0a0a08", fontWeight: 700, fontSize: ".95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             {loading
