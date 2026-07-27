@@ -3,6 +3,7 @@ import { supabase } from "./lib/supabase";
 import useStore from "./hooks/useStore";
 import { today } from "./lib/utils";
 import Login from "./components/Login";
+import RedefinirSenha from "./components/RedefinirSenha";
 import SetupTenant from "./components/SetupTenant";
 import Onboarding from "./components/Onboarding";
 import Dashboard from "./components/Dashboard";
@@ -50,6 +51,7 @@ const styles = `
 
 export default function App() {
   const [session, setSession] = useState(undefined);
+  const [recuperando, setRecuperando] = useState(false); // link de "esqueci minha senha" clicado
   const [tenantId, setTenantId] = useState(undefined); // undefined=checando, null=sem loja, uuid=ok
   const [aba, setAba] = useState("dashboard");
   const [sidebar, setSidebar] = useState(true);
@@ -71,7 +73,10 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session ?? null); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => { setSession(session ?? null); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session ?? null);
+      if (event === "PASSWORD_RECOVERY") setRecuperando(true);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -142,6 +147,12 @@ export default function App() {
   if (!session) return (
     <><style>{styles.replace("background:#0e0e0e", "background:#080806")}</style>
       <Login onLogin={(s) => setSession(s)} />
+    </>
+  );
+
+  if (recuperando) return (
+    <><style>{styles.replace("background:#0e0e0e", "background:#080806")}</style>
+      <RedefinirSenha onDone={() => { setRecuperando(false); notify("Senha atualizada."); }} />
     </>
   );
 
