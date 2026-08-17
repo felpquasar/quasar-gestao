@@ -75,4 +75,4 @@ Existe `scripts/run-sql.js` (pasta isolada com seu próprio `package.json`, não
 
 ## Estado da sessão
 
-Os arquivos `contexto-compactado-*.md` na raiz guardam onde cada frente de trabalho parou — ler o mais recente ao retomar ("onde paramos").
+Os arquivos `contexto-compactado-*.md` em `contexto/` guardam onde cada frente de trabalho parou — ler o mais recente ao retomar ("onde paramos").
