@@ -40,7 +40,7 @@ Internal management system for **Quasar Barber**, a B2B distributor of beard and
 
 ## Supabase
 
-Connection is in `src/lib/supabase.js` using env vars `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_KEY` (anon key). Note: the client is imported from `esm.sh` (CDN), not the npm package — keep this consistent.
+Connection is in `src/lib/supabase.js` using env vars `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_KEY` (anon key). The client is imported from the `@supabase/supabase-js` npm package (bundled locally — switched away from the `esm.sh` CDN import in 08/2026 because it added a 17-request waterfall on first load, hurting mobile LCP).
 
 **Tables:** `produtos`, `clientes`, `vendas`, `venda_itens`, `movimentos`, `contas_receber`
 
