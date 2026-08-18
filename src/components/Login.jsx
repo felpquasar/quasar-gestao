@@ -18,6 +18,7 @@ const Login = ({ onLogin }) => {
   const [erro, setErro] = useState("");
   const [info, setInfo] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaFalhou, setCaptchaFalhou] = useState(false);
   const turnstileRef = useRef(null);
 
   const isSignup = modo === "signup";
@@ -43,7 +44,7 @@ const Login = ({ onLogin }) => {
   const enviarRecuperacao = async (e) => {
     e?.preventDefault();
     if (!email) { setErro("Informe seu email."); return; }
-    if (!captchaToken) { setErro("Aguarde a verificação de segurança carregar."); return; }
+    if (!captchaToken) { setErro(captchaFalhou ? "A verificação de segurança não carregou. Desative bloqueadores de anúncio/privacidade para este site e recarregue a página." : "Aguarde a verificação de segurança carregar."); return; }
     setLoading(true); setErro(""); setInfo("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, { captchaToken });
     setLoading(false); resetCaptcha();
@@ -55,7 +56,7 @@ const Login = ({ onLogin }) => {
     e?.preventDefault();
     if (isRecuperar) return enviarRecuperacao(e);
     if (!email || !senha) { setErro("Preencha email e senha."); return; }
-    if (!captchaToken) { setErro("Aguarde a verificação de segurança carregar."); return; }
+    if (!captchaToken) { setErro(captchaFalhou ? "A verificação de segurança não carregou. Desative bloqueadores de anúncio/privacidade para este site e recarregue a página." : "Aguarde a verificação de segurança carregar."); return; }
     setLoading(true); setErro(""); setInfo("");
 
     if (isSignup) {
@@ -130,8 +131,17 @@ const Login = ({ onLogin }) => {
               <Icon name="warn" size={15} /> {erro}
             </div>
           )}
+          {captchaFalhou && !erro && (
+            <div style={{ background: "#2a0d0d", border: "1px solid #5a1e1e", borderRadius: 8, padding: "10px 14px", marginBottom: "1rem", color: "#e05a5a", fontSize: ".83rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Icon name="warn" size={15} /> A verificação de segurança não carregou. Desative bloqueadores de anúncio/privacidade para este site.</div>
+              <button type="button" onClick={() => window.location.reload()}
+                style={{ background: "none", border: "1px solid #5a1e1e", borderRadius: 6, color: "#e05a5a", cursor: "pointer", fontSize: ".78rem", padding: "5px 10px", fontWeight: 600 }}>
+                Recarregar página
+              </button>
+            </div>
+          )}
           <div style={{ marginBottom: "1rem", display: "flex", justifyContent: "center" }}>
-            <Turnstile ref={turnstileRef} siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} />
+            <Turnstile ref={turnstileRef} siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} onError={() => setCaptchaFalhou(true)} />
           </div>
           <button type="submit" disabled={loading}
             style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", cursor: loading ? "not-allowed" : "pointer", background: "#ffbf00", color: "#0a0a08", fontWeight: 700, fontSize: ".95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>

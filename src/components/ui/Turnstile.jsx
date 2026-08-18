@@ -4,7 +4,7 @@ import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 // signUp/signInWithPassword/resetPasswordForEmail depois que ativamos
 // "Attack Protection" no Dashboard). Script global carregado em public/index.html.
 // Token é de uso único — chamar reset() depois de cada tentativa de submit.
-const Turnstile = forwardRef(({ siteKey, onToken }, ref) => {
+const Turnstile = forwardRef(({ siteKey, onToken, onError }, ref) => {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
 
@@ -32,7 +32,10 @@ const Turnstile = forwardRef(({ siteKey, onToken }, ref) => {
         return;
       }
       // Script carrega async — tenta de novo por até ~5s.
-      if (tentativas++ < 50) setTimeout(tentarRenderizar, 100);
+      if (tentativas++ < 50) { setTimeout(tentarRenderizar, 100); return; }
+      // Esgotou as tentativas: script nunca carregou (bloqueador de anúncio,
+      // extensão de privacidade, rede bloqueando challenges.cloudflare.com).
+      onError?.();
     };
     tentarRenderizar();
 
