@@ -62,7 +62,10 @@ const DocumentosClinicos = ({ tenantId, clienteId, documentosClinicos, setDocume
     setConfirmState({ msg: "Excluir este documento?", onConfirm: async () => {
       const { error: storageErro } = await supabase.storage.from(BUCKET).remove([doc.storage_path]);
       const { error } = await supabase.from("documentos_clinicos").delete().eq("id", doc.id);
-      if (error) { notify("Erro ao excluir.", "error"); return; }
+      if (error) {
+        notify(storageErro ? "Erro ao excluir." : "Arquivo removido, mas o registro não pôde ser excluído — tente excluir de novo.", "error");
+        return;
+      }
       setDocumentosClinicos(prev => prev.filter(d => d.id !== doc.id));
       notify(storageErro ? "Registro excluído, mas o arquivo pode ter ficado no armazenamento." : "Documento excluído.", storageErro ? "error" : "ok");
     }});

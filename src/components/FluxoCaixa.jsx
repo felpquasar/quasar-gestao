@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { fmt, today } from '../lib/utils';
+import { fmt, today, saldoCr } from '../lib/utils';
 import { inp, btn } from '../styles/shared';
 import Icon from './ui/Icon';
 import Modal from './ui/Modal';
@@ -96,7 +96,7 @@ const FluxoCaixa = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar
 
       const entProj = contasReceber
         .filter(cr => cr.status !== "pago" && cr.data_vencimento?.startsWith(ym))
-        .reduce((a, c) => a + Number(c.valor), 0);
+        .reduce((a, c) => a + saldoCr(c), 0);
 
       const saiProj = contasPagar
         .filter(cp => cp.status !== "pago" && cp.data_vencimento?.startsWith(ym))

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { fmt, today } from '../lib/utils';
+import { fmt, today, saldoCr } from '../lib/utils';
 import { btn } from '../styles/shared';
 import Icon from './ui/Icon';
 
@@ -22,7 +22,7 @@ const RelatorioInadimplencia = ({ t = (k) => k, contasReceber, clientes }) => {
     const map = {};
     vencidas.forEach(cr => {
       if (!map[cr.cliente_id]) map[cr.cliente_id] = { id: cr.cliente_id, total: 0, qtd: 0, maxDias: 0 };
-      map[cr.cliente_id].total += Number(cr.valor);
+      map[cr.cliente_id].total += saldoCr(cr);
       map[cr.cliente_id].qtd++;
       const d = diasAtraso(cr.data_vencimento);
       if (d > map[cr.cliente_id].maxDias) map[cr.cliente_id].maxDias = d;
@@ -32,7 +32,7 @@ const RelatorioInadimplencia = ({ t = (k) => k, contasReceber, clientes }) => {
       .map(r => ({ ...r, nome: clientes.find(c => c.id === r.id)?.nome ?? "—" }));
   }, [vencidas, clientes]);
 
-  const totalVencido = useMemo(() => vencidas.reduce((a, c) => a + Number(c.valor), 0), [vencidas]);
+  const totalVencido = useMemo(() => vencidas.reduce((a, c) => a + saldoCr(c), 0), [vencidas]);
   const maxDiasGeral = useMemo(() => vencidas.length > 0 ? Math.max(...vencidas.map(c => diasAtraso(c.data_vencimento))) : 0, [vencidas]);
 
   const handleCSV = () => {

@@ -63,36 +63,43 @@ const Clientes = ({
     setModal(true);
   };
 
+  // Ajusta o contador de indicações de um indicador (+1 nova indicação, -1 indicação desfeita).
+  const ajustarIndicador = async (refId, delta) => {
+    const referrer = clientes.find(c => c.id === refId);
+    if (!referrer) return;
+    const novasIndicacoes = Math.max(0, (Number(referrer.indicacoes_ativas) || 0) + delta);
+    const tier = calcTier(novasIndicacoes);
+    const novoDesconto = tier ? tier.pct : 0;
+    const { error: eRef } = await supabase.from("clientes")
+      .update({ indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto })
+      .eq("id", refId);
+    if (!eRef) setClientes(prev => prev.map(c => c.id === refId ? { ...c, indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto } : c));
+  };
+
   const salvar = async () => {
     if (!form.nome) return; setSaving(true);
+    const novoIndicadoPor = form.indicado_por ? Number(form.indicado_por) : null;
     const payload = {
       nome: form.nome, contato: form.contato, telefone: form.telefone,
       cidade: form.cidade, tipo: form.tipo, limite_credito: Number(form.limite_credito) || 0,
-      indicado_por: form.indicado_por ? Number(form.indicado_por) : null,
+      indicado_por: novoIndicadoPor,
     };
     if (editando) {
+      const antigoIndicadoPor = editando.indicado_por ? Number(editando.indicado_por) : null;
       const { data, error } = await supabase.from("clientes").update(payload).eq("id", editando.id).select().single();
       setSaving(false); if (error) { notify("Erro ao salvar", "error"); return; }
       setClientes(prev => prev.map(c => c.id === editando.id ? data : c));
+      // Indicação mudou de dono: desfaz do antigo indicador e aplica no novo.
+      if (antigoIndicadoPor !== novoIndicadoPor) {
+        if (antigoIndicadoPor) await ajustarIndicador(antigoIndicadoPor, -1);
+        if (novoIndicadoPor) await ajustarIndicador(novoIndicadoPor, 1);
+      }
     } else {
       const { data, error } = await supabase.from("clientes").insert(payload).select().single();
       setSaving(false); if (error) { notify("Erro ao salvar", "error"); return; }
       setClientes(prev => [...prev, data].sort((a, b) => a.nome.localeCompare(b.nome)));
       setSelId(data.id);
-
-      if (form.indicado_por) {
-        const refId = Number(form.indicado_por);
-        const referrer = clientes.find(c => c.id === refId);
-        if (referrer) {
-          const novasIndicacoes = (Number(referrer.indicacoes_ativas) || 0) + 1;
-          const tier = calcTier(novasIndicacoes);
-          const novoDesconto = tier ? tier.pct : 0;
-          const { error: eRef } = await supabase.from("clientes")
-            .update({ indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto })
-            .eq("id", refId);
-          if (!eRef) setClientes(prev => prev.map(c => c.id === refId ? { ...c, indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto } : c));
-        }
-      }
+      if (novoIndicadoPor) await ajustarIndicador(novoIndicadoPor, 1);
     }
     setModal(false); notify(`${t("cliente")} ${editando ? "atualizado." : "cadastrado."}`);
   };
@@ -108,15 +115,17 @@ const Clientes = ({
 
   const excluir = (id) => {
     setConfirmState({ msg: `Excluir este ${t("cliente").toLowerCase()}?`, onConfirm: async () => {
+      const cli = clientes.find(c => c.id === id);
       const { error } = await supabase.from("clientes").delete().eq("id", id);
-      if (error) { notify("Erro ao excluir", "error"); return; }
+      if (error) { notify(error.code === "23503" ? "Não é possível excluir: existe outro cliente indicado por este." : "Erro ao excluir", "error"); return; }
       setClientes(prev => prev.filter(c => c.id !== id));
       if (selId === id) setSelId(null);
+      if (cli?.indicado_por) await ajustarIndicador(Number(cli.indicado_por), -1);
       notify(`${t("cliente")} excluído.`);
     }});
   };
 
-  const metricas = (cid) => { const vs = vendas.filter(v => v.cliente_id === cid); const tot = vs.reduce((a, v) => a + Number(v.total), 0); return { total: tot, pedidos: vs.length, ticket: vs.length > 0 ? tot / vs.length : 0 }; };
+  const metricas = (cid) => { const vs = vendas.filter(v => v.cliente_id === cid && v.status !== "cancelado"); const tot = vs.reduce((a, v) => a + Number(v.total), 0); return { total: tot, pedidos: vs.length, ticket: vs.length > 0 ? tot / vs.length : 0 }; };
   const vcli = (cid) => vendas.filter(v => v.cliente_id === cid).sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   const statusCor = { pago: "#4caf82", pendente: "#e8a020", cancelado: "#e05a5a" };
 

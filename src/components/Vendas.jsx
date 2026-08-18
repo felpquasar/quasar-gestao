@@ -228,27 +228,32 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
         netChanges[pid] = (netChanges[pid] || 0) - Number(it.quantidade);
       }
 
-      // Atualiza estoque no DB
+      // Atualiza estoque no DB — sincroniza o estado local logo em seguida, pra tela nunca
+      // ficar mostrando valor antigo enquanto o banco já mudou (evita reaplicar em retry).
       for (const [pid, delta] of Object.entries(netChanges)) {
         const prod = produtos.find(p => p.id === Number(pid));
         if (!prod) continue;
-        await supabase.from("produtos").update({ estoque: prod.estoque + delta }).eq("id", Number(pid));
+        const novoEstoque = prod.estoque + delta;
+        const { error: pe } = await supabase.from("produtos").update({ estoque: novoEstoque }).eq("id", Number(pid));
+        if (pe) throw pe;
+        setProdutos(prev => prev.map(p => p.id === Number(pid) ? { ...p, estoque: p.estoque + delta } : p));
       }
 
       // Reconciliação de sessões: refund das removidas, consumo (RPC) das novas
       const removidas = oldSessaoIds.filter(id => !novoSessaoIds.includes(id));
       const adicionadas = novoSessaoIds.filter(id => !oldSessaoIds.includes(id));
-      const refundDeltas = {};
       for (const id of removidas) {
         const pc = (pacotesCliente || []).find(p => p.id === id);
         if (!pc) continue;
         const novoUsadas = Math.max(0, pc.sessoes_usadas - 1);
-        await supabase.from("pacotes_cliente").update({ sessoes_usadas: novoUsadas }).eq("id", id);
-        refundDeltas[id] = novoUsadas;
+        const { error: pce } = await supabase.from("pacotes_cliente").update({ sessoes_usadas: novoUsadas }).eq("id", id);
+        if (pce) throw pce;
+        if (setPacotesCliente) setPacotesCliente(prev => prev.map(p => p.id === id ? { ...p, sessoes_usadas: Math.max(0, p.sessoes_usadas - 1) } : p));
       }
       for (const id of adicionadas) {
         const { error: rpcErr } = await supabase.rpc("consumir_sessao", { p_pacote_cliente: id });
         if (rpcErr) throw new Error(rpcErr.message || "Falha ao consumir sessão do pacote.");
+        if (setPacotesCliente) setPacotesCliente(prev => prev.map(p => p.id === id ? { ...p, sessoes_usadas: p.sessoes_usadas + 1 } : p));
       }
 
       // Substitui itens
@@ -316,18 +321,7 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
         if (crDel?.length) setContasReceber(prev => prev.filter(x => !(x.venda_id === editVenda.id && x.status === "pendente")));
       }
 
-      // Atualiza estado local
-      setProdutos(prev => prev.map(p => {
-        const delta = netChanges[p.id];
-        return delta !== undefined ? { ...p, estoque: p.estoque + delta } : p;
-      }));
-      if (setPacotesCliente && (removidas.length || adicionadas.length)) {
-        setPacotesCliente(prev => prev.map(pc => {
-          if (refundDeltas[pc.id] !== undefined) return { ...pc, sessoes_usadas: refundDeltas[pc.id] };
-          if (adicionadas.includes(pc.id)) return { ...pc, sessoes_usadas: pc.sessoes_usadas + 1 };
-          return pc;
-        }));
-      }
+      // Estoque e saldo de pacote já foram sincronizados logo após cada escrita, acima.
       setVendas(prev => prev.map(v => v.id === editVenda.id ? { ...vendaAtualizada, venda_itens: novoItens } : v));
       setModalEditar(false);
       setEditVenda(null);

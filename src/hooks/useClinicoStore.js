@@ -51,6 +51,7 @@ export function useClinicoStore(tenantId, segmento, notify) {
 
   useEffect(() => {
     if (segmento !== "saude") {
+      loadIdRef.current++; // invalida qualquer load() de segmento "saude" ainda em voo
       setAnamneses([]); setEvolucoes([]); setPlanosTratamento([]);
       setFasesTratamento([]); setDocumentosClinicos([]); setOdontogramas([]);
       return;

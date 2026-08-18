@@ -23,7 +23,8 @@ const SetupTenant = ({ email, onReady, onLogout }) => {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("nome");
+      if (error) setErro("Não foi possível carregar os tipos de negócio. Recarregue a página e tente de novo.");
       setSegmentos(data || []);
       if (data?.length === 1) setSegmento(data[0].id);
       setCarregandoSegmentos(false);

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import EmptyState from './ui/EmptyState';
 import { useMobile } from '../hooks/useMobile';
 import { supabase } from '../lib/supabase';
-import { fmt, today } from '../lib/utils';
+import { fmt, today, saldoCr } from '../lib/utils';
 import { inp, btn } from '../styles/shared';
 import Icon from './ui/Icon';
 import Modal from './ui/Modal';
@@ -25,7 +25,6 @@ const statusReal = (cr) => {
 const diasAtraso = (vencimento) =>
   Math.floor((new Date(today() + "T12:00:00") - new Date(vencimento + "T12:00:00")) / 86400000);
 
-const saldoCr = (cr) => Math.max(0, Number(cr.valor) - Number(cr.valor_pago || 0));
 
 const ContasReceber = ({ t = (k) => k, contasReceber, setContasReceber, clientes, vendas, setVendas, notify }) => {
   const isMobile = useMobile();

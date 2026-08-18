@@ -61,11 +61,11 @@ const Dashboard = ({ produtos, clientes, vendas, movimentos, contasReceber, cont
   const mostrarOnbCard = !onbCardOff && !onbCompleto;
   const dispensarOnbCard = () => { localStorage.setItem("quasar_onb_card", "1"); setOnbCardOff(true); };
   const agora = new Date();
-  const mesAtual = agora.toISOString().slice(0, 7);
-  const semanaAtras = new Date(agora - 7 * 86400000).toISOString().split("T")[0];
-  const duasSemanas = new Date(agora - 14 * 86400000).toISOString().split("T")[0];
-  const trimestre = new Date(agora - 90 * 86400000).toISOString().split("T")[0];
-  const semestre = new Date(agora - 180 * 86400000).toISOString().split("T")[0];
+  const mesAtual = today().slice(0, 7);
+  const semanaAtras = addDays(today(), -7);
+  const duasSemanas = addDays(today(), -14);
+  const trimestre = addDays(today(), -90);
+  const semestre = addDays(today(), -180);
   const dAnt = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
   const mesAnterior = `${dAnt.getFullYear()}-${String(dAnt.getMonth() + 1).padStart(2, "0")}`;
 
@@ -77,8 +77,8 @@ const Dashboard = ({ produtos, clientes, vendas, movimentos, contasReceber, cont
     : periodo === "semana" ? v => v.data >= duasSemanas && v.data < semanaAtras
     : v => v.data >= semestre && v.data < trimestre;
 
-  const vp = vendas.filter(fp);
-  const vpPrev = vendas.filter(fpPrev);
+  const vp = vendas.filter(v => fp(v) && v.status !== "cancelado");
+  const vpPrev = vendas.filter(v => fpPrev(v) && v.status !== "cancelado");
   const fat = vp.reduce((a, v) => a + Number(v.total), 0);
   const fatPrev = vpPrev.reduce((a, v) => a + Number(v.total), 0);
   const tkt = vp.length > 0 ? fat / vp.length : 0;
