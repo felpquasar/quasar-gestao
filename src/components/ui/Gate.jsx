@@ -22,7 +22,7 @@ export function Upsell({ feature, titulo }) {
           ? <>Disponível a partir do plano <strong style={{ color: "#e0d6b8" }}>{necessario}</strong>. Faça o upgrade pra liberar.</>
           : "Este recurso não está incluído no seu plano atual."}
       </p>
-      <a href="https://wa.me/" target="_blank" rel="noreferrer"
+      <a href={`https://wa.me/5599992007182?text=${encodeURIComponent(`Quero fazer upgrade pra desbloquear: ${titulo || feature}`)}`} target="_blank" rel="noreferrer"
         style={{ padding: "11px 22px", borderRadius: 6, background: "#ffbf00", color: "#0a0a08", fontSize: ".85rem", fontWeight: 700, textDecoration: "none" }}>
         Fazer upgrade
       </a>

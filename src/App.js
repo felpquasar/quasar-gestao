@@ -20,8 +20,10 @@ import Spinner from "./components/ui/Spinner";
 import { SkeletonDashboard } from "./components/ui/Skeleton";
 import Icon from "./components/ui/Icon";
 import GlobalSearch from "./components/ui/GlobalSearch";
+import LojaSwitcher from "./components/ui/LojaSwitcher";
 import { Gate } from "./components/ui/Gate";
 import { useMobile } from "./hooks/useMobile";
+import { useMinhasLojas } from "./hooks/useMinhasLojas";
 import { usePlano } from "./hooks/usePlano";
 import { useSuperAdmin } from "./hooks/useSuperAdmin";
 import { useTermos } from "./hooks/useTermos";
@@ -64,6 +66,7 @@ export default function App() {
   const isMobile = useMobile();
   const { plano } = usePlano(tenantId);
   const isSuperAdmin = useSuperAdmin(session);
+  const { lojas } = useMinhasLojas(tenantId);
   const { t, segmento, subSegmento } = useTermos(tenantId);
   const {
     anamneses, setAnamneses, evolucoes, setEvolucoes,
@@ -192,6 +195,7 @@ export default function App() {
           </div>
           {!isMobile && <GlobalSearch produtos={produtos} clientes={clientes} vendas={vendas} onGo={setAba} />}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+            <LojaSwitcher lojas={lojas} tenantId={tenantId} onTrocar={handleTenantReady} notify={notify} />
             {!isMobile && <span style={{ fontSize: ".75rem", color: "#555", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.user?.email}</span>}
             <button onClick={handleLogout} title="Sair"
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 6, border: "1px solid #222", background: "transparent", color: "#666", cursor: "pointer", fontSize: ".75rem" }}>
