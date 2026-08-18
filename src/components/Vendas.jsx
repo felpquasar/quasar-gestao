@@ -543,7 +543,7 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
               </select>
             </Field>
           </div>
-          {form.status === "pendente" && (
+          {form.status === "pendente" && form.forma === "parcelado" && (
             <Field label="Prazo de Pagamento">
               <div style={{ display: "flex", gap: 8 }}>
                 {PRAZOS.map(p => (
