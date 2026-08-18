@@ -6,13 +6,17 @@ import Fornecedores from './Fornecedores';
 import FluxoCaixa from './FluxoCaixa';
 import Despesas from './Despesas';
 
-const Financeiro = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, clientes, vendas, despesas, setDespesas, notify }) => {
+const Financeiro = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar, setContasPagar, fornecedores, setFornecedores, clientes, vendas, setVendas, despesas, setDespesas, notify }) => {
   const [aba, setAba] = useState("receber");
 
   const qtdReceberVencidas = contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today()).length;
   const qtdPagarVencidas = contasPagar.filter(cp => cp.status !== "pago" && cp.data_vencimento < today()).length;
 
-  const totalVendas = (vendas || []).filter(v => v.status !== "cancelado").reduce((a, v) => a + Number(v.total), 0);
+  // Conta só o que já entrou de fato: venda paga = total; venda pendente parcelada = só a entrada; demais pendentes (sem cobrança rastreada) = total, igual ao resto do app.
+  const totalVendas = (vendas || []).filter(v => v.status !== "cancelado").reduce((a, v) => {
+    const recebido = v.status === "pago" ? Number(v.total) : (v.forma_pagamento === "parcelado" ? Number(v.valor_entrada || 0) : Number(v.total));
+    return a + recebido;
+  }, 0);
   const totalFornecedores = contasPagar.filter(cp => cp.status === "pago").reduce((a, c) => a + Number(c.valor), 0);
   const totalDespesas = (despesas || []).reduce((a, d) => a + Number(d.valor), 0);
   const saldoCaixa = totalVendas - totalFornecedores - totalDespesas;
@@ -54,7 +58,7 @@ const Financeiro = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar
       </div>
 
       {aba === "receber" && (
-        <ContasReceber t={t} contasReceber={contasReceber} setContasReceber={setContasReceber} clientes={clientes} notify={notify} />
+        <ContasReceber t={t} contasReceber={contasReceber} setContasReceber={setContasReceber} clientes={clientes} vendas={vendas} setVendas={setVendas} notify={notify} />
       )}
       {aba === "pagar" && (
         <ContasPagar contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} notify={notify} />

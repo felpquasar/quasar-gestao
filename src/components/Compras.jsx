@@ -172,12 +172,6 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
     if (receberForm.gerar_conta && !receberForm.data_vencimento) { notify("Informe a data de vencimento da conta.", "error"); return; }
     setSaving(true);
     try {
-      const { error: pe } = await supabase.from("pedidos_compra").update({
-        status: "recebido",
-        data_recebimento: receberForm.data_recebimento,
-      }).eq("id", modalReceber.id);
-      if (pe) { notify(`Erro: ${pe.message}`, "error"); return; }
-
       const itens = modalReceber.pedido_itens || [];
 
       // Calcula novos estoques e custo médio ponderado (CMP) por produto
@@ -198,8 +192,8 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
         }
       });
 
-      // Atualiza produtos no banco (estoque + custo médio)
-      await Promise.all(
+      // Atualiza produtos no banco (estoque + custo médio) — se falhar, não marca o pedido como recebido.
+      const prodResults = await Promise.all(
         Object.entries(estoqueMap).map(([id, novoEstoque]) => {
           const numId = Number(id);
           const updates = { estoque: novoEstoque };
@@ -207,6 +201,8 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
           return supabase.from("produtos").update(updates).eq("id", numId);
         })
       );
+      const prodErro = prodResults.find(r => r.error);
+      if (prodErro) { notify(`Erro ao atualizar estoque: ${prodErro.error.message}`, "error"); return; }
 
       // Insere movimentos de entrada
       const movInserts = await Promise.all(
@@ -220,7 +216,16 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
           }).select().single()
         )
       );
+      const movErro = movInserts.find(r => r.error);
+      if (movErro) { notify(`Erro ao registrar movimento de estoque: ${movErro.error.message}`, "error"); return; }
       const novosMovs = movInserts.map(r => r.data).filter(Boolean);
+
+      // Só marca o pedido como recebido depois que estoque e movimentos foram gravados com sucesso.
+      const { error: pe } = await supabase.from("pedidos_compra").update({
+        status: "recebido",
+        data_recebimento: receberForm.data_recebimento,
+      }).eq("id", modalReceber.id);
+      if (pe) { notify(`Erro: ${pe.message}`, "error"); return; }
 
       // Atualiza estado local de produtos e movimentos
       setProdutos(prev => prev.map(p => {

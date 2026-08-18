@@ -27,7 +27,7 @@ const diasAtraso = (vencimento) =>
 
 const saldoCr = (cr) => Math.max(0, Number(cr.valor) - Number(cr.valor_pago || 0));
 
-const ContasReceber = ({ t = (k) => k, contasReceber, setContasReceber, clientes, notify }) => {
+const ContasReceber = ({ t = (k) => k, contasReceber, setContasReceber, clientes, vendas, setVendas, notify }) => {
   const isMobile = useMobile();
   const [filtro, setFiltro] = useState("todos");
   const [modalNova, setModalNova] = useState(false);
@@ -115,6 +115,10 @@ const ContasReceber = ({ t = (k) => k, contasReceber, setContasReceber, clientes
         .eq("id", modalPagar.id).select().single();
       if (error) { console.error("contas_receber update:", error); notify(`Erro ao registrar pagamento: ${error.message}`, "error"); return; }
       setContasReceber(prev => prev.map(cr => cr.id === modalPagar.id ? data : cr));
+      if (pagoTotal && modalPagar.venda_id && setVendas) {
+        const { error: ve } = await supabase.from("vendas").update({ status: "pago" }).eq("id", modalPagar.venda_id);
+        if (!ve) setVendas(prev => prev.map(v => v.id === modalPagar.venda_id ? { ...v, status: "pago" } : v));
+      }
       setModalPagar(null);
       notify(pagoTotal ? "Pagamento total registrado." : `Parcial de ${fmt(valorRecebido)} registrado. Saldo: ${fmt(saldo - valorRecebido)}`);
     } finally { setSaving(false); }

@@ -137,12 +137,17 @@ const Dashboard = ({ produtos, clientes, vendas, movimentos, contasReceber, cont
     return Object.entries(m).sort((a, b) => b[1] - a[1]);
   }, [dp]);
 
+  // "Recebido" conta só o que entrou de fato: venda paga = total; venda pendente parcelada = só a entrada.
+  const totalRecebidoVendas = useMemo(() => vendas.filter(v => v.status !== "cancelado").reduce((a, v) => {
+    const recebido = v.status === "pago" ? Number(v.total) : (v.forma_pagamento === "parcelado" ? Number(v.valor_entrada || 0) : Number(v.total));
+    return a + recebido;
+  }, 0), [vendas]);
+
   const saldoCaixa = useMemo(() => {
-    const entradas = vendas.filter(v => v.status !== "cancelado").reduce((a, v) => a + Number(v.total), 0);
     const saidasCP = (contasPagar || []).filter(cp => cp.status === "pago").reduce((a, c) => a + Number(c.valor), 0);
     const saidasDesp = (despesas || []).reduce((a, d) => a + Number(d.valor), 0);
-    return entradas - saidasCP - saidasDesp;
-  }, [vendas, contasPagar, despesas]);
+    return totalRecebidoVendas - saidasCP - saidasDesp;
+  }, [totalRecebidoVendas, contasPagar, despesas]);
 
   const diasPeriodo = useMemo(() => [...new Set(vp.map(v => v.data).filter(Boolean))].sort(), [vp]);
 
@@ -276,7 +281,7 @@ const Dashboard = ({ produtos, clientes, vendas, movimentos, contasReceber, cont
             <CardHead title="Saldo no caixa" action="Fluxo" onAction={() => onNavigate?.("financeiro")} />
             <div style={{ fontSize: "1.8rem", fontWeight: 700, color: saldoCaixa >= 0 ? "#4caf82" : "#e05a5a", fontFamily: "'DM Mono',monospace", lineHeight: 1, marginBottom: 12 }}>{fmt(saldoCaixa)}</div>
             <div style={{ fontSize: ".74rem", color: "#555", lineHeight: 1.9 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Vendas (total)</span><span style={{ color: "#4caf82", fontFamily: "'DM Mono',monospace" }}>{fmt(vendas.filter(v => v.status !== "cancelado").reduce((a, v) => a + Number(v.total), 0))}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Recebido</span><span style={{ color: "#4caf82", fontFamily: "'DM Mono',monospace" }}>{fmt(totalRecebidoVendas)}</span></div>
               <div style={{ display: "flex", justifyContent: "space-between" }}><span>Fornecedores</span><span style={{ color: "#e05a5a", fontFamily: "'DM Mono',monospace" }}>−{fmt((contasPagar || []).filter(cp => cp.status === "pago").reduce((a, c) => a + Number(c.valor), 0))}</span></div>
               <div style={{ display: "flex", justifyContent: "space-between" }}><span>Despesas</span><span style={{ color: "#e05a5a", fontFamily: "'DM Mono',monospace" }}>−{fmt((despesas || []).reduce((a, d) => a + Number(d.valor), 0))}</span></div>
             </div>

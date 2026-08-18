@@ -152,12 +152,15 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
       if (ie) throw ie;
 
       // Estoque/movimento só para itens de produto (sessão não mexe em estoque).
-      for (const it of itensProduto) {
-        const prod = produtos.find(p => p.id === Number(it.produtoId)); if (!prod) continue;
-        const novoEstoque = prod.estoque - Number(it.quantidade);
+      // Agrega por produto antes de escrever — o mesmo produto pode aparecer em mais de uma linha da venda.
+      const qtdPorProduto = {};
+      for (const it of itensProduto) qtdPorProduto[it.produtoId] = (qtdPorProduto[it.produtoId] || 0) + Number(it.quantidade);
+      for (const [produtoId, qtd] of Object.entries(qtdPorProduto)) {
+        const prod = produtos.find(p => p.id === Number(produtoId)); if (!prod) continue;
+        const novoEstoque = Math.max(prod.estoque - qtd, 0);
         await supabase.from("produtos").update({ estoque: novoEstoque }).eq("id", prod.id);
         setProdutos(prev => prev.map(p => p.id === prod.id ? { ...p, estoque: novoEstoque } : p));
-        await supabase.from("movimentos").insert({ produto_id: prod.id, tipo: "saida", quantidade: Number(it.quantidade), data: form.data, obs: `Venda #${String(venda.id).slice(-4)}` });
+        await supabase.from("movimentos").insert({ produto_id: prod.id, tipo: "saida", quantidade: qtd, data: form.data, obs: `Venda #${String(venda.id).slice(-4)}` });
       }
 
       // Atualiza saldo local das cartelas consumidas.
@@ -278,10 +281,38 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
       }).eq("id", editVenda.id).select().single();
       if (ve) throw ve;
 
-      // Atualiza conta a receber pendente se existir
-      await supabase.from("contas_receber")
-        .update({ valor: editTotal, cliente_id: Number(editForm.clienteId) })
-        .eq("venda_id", editVenda.id).eq("status", "pendente");
+      // Reconcilia conta a receber vinculada — usa o saldo real (total - entrada já paga), não o total cheio.
+      const editSaldoRestante = editForm.forma === "parcelado"
+        ? Math.max(0, editTotal - Number(editVenda?.valor_entrada || 0))
+        : 0;
+      if (editForm.status === "pago") {
+        const { data: crPago } = await supabase.from("contas_receber")
+          .update({ status: "pago", data_pagamento: today() })
+          .eq("venda_id", editVenda.id).eq("status", "pendente").select();
+        if (crPago?.length) setContasReceber(prev => prev.map(x => x.venda_id === editVenda.id ? { ...x, status: "pago", data_pagamento: today() } : x));
+      } else if (editSaldoRestante > 0) {
+        const vencimento = addDays(editForm.data, Number(editForm.prazo));
+        const { data: crUpd } = await supabase.from("contas_receber")
+          .update({ valor: editSaldoRestante, cliente_id: Number(editForm.clienteId), data_vencimento: vencimento })
+          .eq("venda_id", editVenda.id).eq("status", "pendente").select();
+        if (crUpd?.length) {
+          setContasReceber(prev => prev.map(x => x.venda_id === editVenda.id && x.status === "pendente" ? { ...x, valor: editSaldoRestante, cliente_id: Number(editForm.clienteId), data_vencimento: vencimento } : x));
+        } else {
+          const cli = clientes.find(c => c.id === Number(editForm.clienteId));
+          const { data: crNovo } = await supabase.from("contas_receber").insert({
+            venda_id: editVenda.id, cliente_id: Number(editForm.clienteId),
+            descricao: `Venda #${String(editVenda.id).slice(-4)}${cli ? ` — ${cli.nome}` : ""}`,
+            valor: editSaldoRestante, forma_pagamento: editForm.forma,
+            data_emissao: editForm.data, data_vencimento: vencimento, status: "pendente",
+          }).select().single();
+          if (crNovo) setContasReceber(prev => [...prev, crNovo].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
+        }
+      } else {
+        // Saldo zerado (ex.: forma trocada pra à vista/cartão/pix) — remove cobrança pendente órfã, se houver.
+        const { data: crDel } = await supabase.from("contas_receber")
+          .delete().eq("venda_id", editVenda.id).eq("status", "pendente").select();
+        if (crDel?.length) setContasReceber(prev => prev.filter(x => !(x.venda_id === editVenda.id && x.status === "pendente")));
+      }
 
       // Atualiza estado local
       setProdutos(prev => prev.map(p => {
