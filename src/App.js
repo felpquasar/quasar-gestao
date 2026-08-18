@@ -14,6 +14,7 @@ import Agenda from "./components/Agenda";
 import Pacotes from "./components/Pacotes";
 import Financeiro from "./components/Financeiro";
 import Relatorios from "./components/Relatorios";
+import Admin from "./components/Admin";
 import Toast from "./components/ui/Toast";
 import Spinner from "./components/ui/Spinner";
 import { SkeletonDashboard } from "./components/ui/Skeleton";
@@ -22,6 +23,7 @@ import GlobalSearch from "./components/ui/GlobalSearch";
 import { Gate } from "./components/ui/Gate";
 import { useMobile } from "./hooks/useMobile";
 import { usePlano } from "./hooks/usePlano";
+import { useSuperAdmin } from "./hooks/useSuperAdmin";
 import { useTermos } from "./hooks/useTermos";
 import { useClinicoStore } from "./hooks/useClinicoStore";
 import { can } from "./lib/planos";
@@ -61,6 +63,7 @@ export default function App() {
 
   const isMobile = useMobile();
   const { plano } = usePlano(tenantId);
+  const isSuperAdmin = useSuperAdmin(session);
   const { t, segmento, subSegmento } = useTermos(tenantId);
   const {
     anamneses, setAnamneses, evolucoes, setEvolucoes,
@@ -135,6 +138,7 @@ export default function App() {
     { id: "financeiro", label: "Financeiro", icon: "money", badge: qtdVencidas, feature: "financeiro" },
     { id: "relatorios", label: "Relatórios", icon: "chart", feature: "relatorios" },
   ].filter(n => can(plano, n.feature) && !(n.ocultoEm || []).includes(segmento));
+  if (isSuperAdmin) nav.push({ id: "admin", label: "Admin", icon: "lock" });
 
   if (session === undefined) return (
     <><style>{styles}</style>
@@ -242,6 +246,7 @@ export default function App() {
               {aba === "pacotes" && <Gate plano={plano} feature="pacotes" titulo={t("pacote")}><Pacotes t={t} pacotes={pacotes} setPacotes={setPacotes} pacotesCliente={pacotesCliente} setPacotesCliente={setPacotesCliente} clientes={clientes} setVendas={setVendas} notify={notify} /></Gate>}
               {aba === "financeiro" && <Gate plano={plano} feature="financeiro" titulo="Financeiro"><Financeiro t={t} contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} setFornecedores={setFornecedores} clientes={clientes} vendas={vendas} despesas={despesas} setDespesas={setDespesas} notify={notify} /></Gate>}
               {aba === "relatorios" && <Gate plano={plano} feature="relatorios" titulo="Relatórios"><Relatorios t={t} vendas={vendas} clientes={clientes} produtos={produtos} contasReceber={contasReceber} contasPagar={contasPagar} /></Gate>}
+              {aba === "admin" && isSuperAdmin && <Admin notify={notify} />}
             </div>
           }
         </main>
