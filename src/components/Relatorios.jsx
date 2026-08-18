@@ -3,6 +3,7 @@ import RelatorioDRE from './RelatorioDRE';
 import RelatorioVendas from './RelatorioVendas';
 import RelatorioInadimplencia from './RelatorioInadimplencia';
 import RelatorioMargem from './RelatorioMargem';
+import RelatorioGiroEstoque from './RelatorioGiroEstoque';
 
 const Relatorios = ({ t = (k) => k, vendas, clientes, produtos, contasReceber, contasPagar }) => {
   const [aba, setAba] = useState("dre");
@@ -12,6 +13,7 @@ const Relatorios = ({ t = (k) => k, vendas, clientes, produtos, contasReceber, c
     { id: "vendas", label: "Análise de Vendas" },
     { id: "inadimplencia", label: "Inadimplência" },
     { id: "margem", label: "Margem por Produto" },
+    { id: "giro", label: "Giro & Reposição" },
   ];
 
   return (
@@ -29,6 +31,7 @@ const Relatorios = ({ t = (k) => k, vendas, clientes, produtos, contasReceber, c
       {aba === "vendas" && <RelatorioVendas t={t} vendas={vendas} clientes={clientes} produtos={produtos} />}
       {aba === "inadimplencia" && <RelatorioInadimplencia t={t} contasReceber={contasReceber} clientes={clientes} />}
       {aba === "margem" && <RelatorioMargem vendas={vendas} produtos={produtos} />}
+      {aba === "giro" && <RelatorioGiroEstoque produtos={produtos} vendas={vendas} />}
     </div>
   );
 };

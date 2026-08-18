@@ -3,8 +3,8 @@
 
 // O que CADA plano destrava (só o que ele adiciona; herança é em cascata).
 export const CAPS = {
-  nucleo:      ["dashboard", "estoque", "vendas", "clientes", "agenda", "pacotes"],
-  quasar_pro:  ["financeiro", "crm_recompra", "relatorios", "descontos", "multi_profissional"],
+  nucleo:      ["dashboard", "estoque", "vendas", "clientes", "agenda", "pacotes", "descontos"],
+  quasar_pro:  ["financeiro", "crm_recompra", "relatorios", "multi_profissional", "gestao_clinica"],
   constelacao: ["insights", "multi_unidade", "dashboard_consolidado"],
 };
 
@@ -19,8 +19,8 @@ export const PLANO_LABEL = {
 
 export const LIMITES = {
   nucleo:      { unidades: 1, profissionais: 1 },
-  quasar_pro:  { unidades: 1, profissionais: Infinity },
-  constelacao: { unidades: 3, profissionais: Infinity },
+  quasar_pro:  { unidades: 2, profissionais: 4 },
+  constelacao: { unidades: 5, profissionais: Infinity },
 };
 
 // Todas as capacidades de um plano = ele + os anteriores (cascata).

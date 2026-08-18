@@ -10,6 +10,7 @@ import Field from './ui/Field';
 import Spinner from './ui/Spinner';
 import Confirm from './ui/Confirm';
 import EmptyState from './ui/EmptyState';
+import { Gate } from './ui/Gate';
 import Anamnese from './clinico/Anamnese';
 import Evolucao from './clinico/Evolucao';
 import DocumentosClinicos from './clinico/DocumentosClinicos';
@@ -33,7 +34,7 @@ const tipoCor = { Barbearia: "#ffbf00", Salão: "#b86fcf", Distribuidor: "#6b9fd
 
 const Clientes = ({
   t, clientes, setClientes, vendas, produtos, contasReceber, pacotesCliente = [], notify,
-  segmento, subSegmento, tenantId,
+  segmento, subSegmento, tenantId, plano,
   anamneses = [], setAnamneses, evolucoes = [], setEvolucoes, agendamentos = [],
   planosTratamento = [], setPlanosTratamento, fasesTratamento = [], setFasesTratamento,
   documentosClinicos = [], setDocumentosClinicos, odontogramas = [], setOdontogramas,
@@ -261,13 +262,17 @@ const Clientes = ({
             {podeSubSegmento(subSegmento, "plano_tratamento") && (
               <div>
                 <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Plano de tratamento</div>
-                <PlanoTratamento clienteId={sel.id} planosTratamento={planosTratamento} setPlanosTratamento={setPlanosTratamento} fasesTratamento={fasesTratamento} setFasesTratamento={setFasesTratamento} notify={notify} />
+                <Gate plano={plano} feature="gestao_clinica" titulo="Plano de tratamento">
+                  <PlanoTratamento clienteId={sel.id} planosTratamento={planosTratamento} setPlanosTratamento={setPlanosTratamento} fasesTratamento={fasesTratamento} setFasesTratamento={setFasesTratamento} notify={notify} />
+                </Gate>
               </div>
             )}
             {podeSubSegmento(subSegmento, "odontograma") && (
               <div>
                 <div style={{ fontSize: ".62rem", color: "#555", textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 600, margin: "0 0 10px" }}>Odontograma</div>
-                <Odontograma clienteId={sel.id} odontogramas={odontogramas} setOdontogramas={setOdontogramas} notify={notify} />
+                <Gate plano={plano} feature="gestao_clinica" titulo="Odontograma">
+                  <Odontograma clienteId={sel.id} odontogramas={odontogramas} setOdontogramas={setOdontogramas} notify={notify} />
+                </Gate>
               </div>
             )}
           </div>
