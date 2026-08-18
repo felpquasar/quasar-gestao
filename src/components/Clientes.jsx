@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useMobile } from '../hooks/useMobile';
 import { supabase } from '../lib/supabase';
-import { fmt, today } from '../lib/utils';
+import { fmt, today, saldoCr } from '../lib/utils';
 import { inp, btn } from '../styles/shared';
 import { podeSubSegmento } from '../lib/clinico';
 import Icon from './ui/Icon';
@@ -73,7 +73,8 @@ const Clientes = ({
     const { error: eRef } = await supabase.from("clientes")
       .update({ indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto })
       .eq("id", refId);
-    if (!eRef) setClientes(prev => prev.map(c => c.id === refId ? { ...c, indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto } : c));
+    if (eRef) { notify("Cliente salvo, mas houve erro ao atualizar a indicação do indicador.", "error"); return; }
+    setClientes(prev => prev.map(c => c.id === refId ? { ...c, indicacoes_ativas: novasIndicacoes, desconto_pendente: novoDesconto } : c));
   };
 
   const salvar = async () => {
@@ -87,19 +88,22 @@ const Clientes = ({
     if (editando) {
       const antigoIndicadoPor = editando.indicado_por ? Number(editando.indicado_por) : null;
       const { data, error } = await supabase.from("clientes").update(payload).eq("id", editando.id).select().single();
-      setSaving(false); if (error) { notify("Erro ao salvar", "error"); return; }
+      if (error) { setSaving(false); notify("Erro ao salvar", "error"); return; }
       setClientes(prev => prev.map(c => c.id === editando.id ? data : c));
       // Indicação mudou de dono: desfaz do antigo indicador e aplica no novo.
+      // Fica dentro do "saving" até terminar, pra não deixar o botão liberar duplo-clique no meio do ajuste.
       if (antigoIndicadoPor !== novoIndicadoPor) {
         if (antigoIndicadoPor) await ajustarIndicador(antigoIndicadoPor, -1);
         if (novoIndicadoPor) await ajustarIndicador(novoIndicadoPor, 1);
       }
+      setSaving(false);
     } else {
       const { data, error } = await supabase.from("clientes").insert(payload).select().single();
-      setSaving(false); if (error) { notify("Erro ao salvar", "error"); return; }
+      if (error) { setSaving(false); notify("Erro ao salvar", "error"); return; }
       setClientes(prev => [...prev, data].sort((a, b) => a.nome.localeCompare(b.nome)));
       setSelId(data.id);
       if (novoIndicadoPor) await ajustarIndicador(novoIndicadoPor, 1);
+      setSaving(false);
     }
     setModal(false); notify(`${t("cliente")} ${editando ? "atualizado." : "cadastrado."}`);
   };
@@ -130,7 +134,7 @@ const Clientes = ({
   const statusCor = { pago: "#4caf82", pendente: "#e8a020", cancelado: "#e05a5a" };
 
   const inadimplente = (cid) => (contasReceber || []).some(cr => cr.cliente_id === cid && cr.status !== "pago" && cr.data_vencimento < today());
-  const pendenteCli = (cid) => (contasReceber || []).filter(cr => cr.cliente_id === cid && cr.status !== "pago").reduce((a, c) => a + Number(c.valor), 0);
+  const pendenteCli = (cid) => (contasReceber || []).filter(cr => cr.cliente_id === cid && cr.status !== "pago").reduce((a, c) => a + saldoCr(c), 0);
 
   const lista = useMemo(() => {
     let l = clientes

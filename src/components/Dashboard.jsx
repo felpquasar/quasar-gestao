@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { fmt, today, addDays } from '../lib/utils';
+import { fmt, today, addDays, saldoCr } from '../lib/utils';
 import { useMobile } from '../hooks/useMobile';
 import Icon from './ui/Icon';
 import LineAreaChart from './LineAreaChart';
@@ -115,8 +115,8 @@ const Dashboard = ({ produtos, clientes, vendas, movimentos, contasReceber, cont
       .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
   }, [contasReceber]);
 
-  const totalVencido = contasVencidas.reduce((a, c) => a + Number(c.valor), 0);
-  const totalAReceber = (contasReceber || []).filter(cr => cr.status !== "pago").reduce((a, c) => a + Number(c.valor), 0);
+  const totalVencido = contasVencidas.reduce((a, c) => a + saldoCr(c), 0);
+  const totalAReceber = (contasReceber || []).filter(cr => cr.status !== "pago").reduce((a, c) => a + saldoCr(c), 0);
 
   const proximos = useMemo(() => {
     const lim = addDays(today(), 14);

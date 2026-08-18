@@ -71,9 +71,15 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
     if (!form.clienteId && !form.cliente_nome.trim()) { notify(`Escolha um ${t("cliente").toLowerCase()} ou informe um nome.`, "error"); return; }
     const duracao = Number(form.duracao_min);
     if (!Number.isFinite(duracao) || duracao <= 0) { notify("Informe uma duração maior que zero.", "error"); return; }
-    // Data nova (ou movida) não pode ficar no passado — histórico existente não é mexido.
+    // Data/hora nova (ou movida) não pode ficar no passado — histórico existente não é mexido.
     const dataMudou = !editando || form.data !== editando.data;
+    const horaMudou = !editando || form.hora !== (editando.hora || "").slice(0, 5);
     if (dataMudou && form.data < today()) { notify("Não é possível agendar para uma data anterior a hoje.", "error"); return; }
+    if ((dataMudou || horaMudou) && form.data === today()) {
+      const agora = new Date();
+      const horaAtual = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
+      if (form.hora < horaAtual) { notify("Não é possível agendar para um horário que já passou hoje.", "error"); return; }
+    }
     // Trava de conflito: nenhum outro agendamento (não cancelado) pode se sobrepor no mesmo dia.
     const inicioNovo = paraMinutos(form.hora);
     const fimNovo = inicioNovo + duracao;

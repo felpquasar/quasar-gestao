@@ -21,6 +21,7 @@ const PlanoTratamento = ({ clienteId, planosTratamento, setPlanosTratamento, fas
   const [form, setForm] = useState({ titulo: "", status: "ativo", data_inicio: today(), previsao_termino: "", valor_total: "", observacoes: "" });
   const [saving, setSaving] = useState(false);
   const [faseForm, setFaseForm] = useState({});
+  const [salvandoFase, setSalvandoFase] = useState(new Set());
   const [confirmState, setConfirmState] = useState(null);
 
   const planos = planosTratamento.filter(p => p.cliente_id === clienteId);
@@ -66,12 +67,15 @@ const PlanoTratamento = ({ clienteId, planosTratamento, setPlanosTratamento, fas
   };
 
   const adicionarFase = async (planoId) => {
+    if (salvandoFase.has(planoId)) return; // trava contra clique duplo (comum no celular)
     const nome = (faseForm[planoId]?.nome || "").trim();
     if (!nome) { notify("Dê um nome à fase.", "error"); return; }
+    setSalvandoFase(prev => new Set(prev).add(planoId));
     const ordem = fasesDe(planoId).length + 1;
     const { data, error } = await supabase.from("fases_tratamento")
       .insert({ plano_tratamento_id: planoId, ordem, nome, previsao_data: faseForm[planoId]?.previsao_data || null })
       .select().single();
+    setSalvandoFase(prev => { const next = new Set(prev); next.delete(planoId); return next; });
     if (error) { notify("Erro ao adicionar fase.", "error"); return; }
     setFasesTratamento(prev => [...prev, data]);
     setFaseForm(prev => ({ ...prev, [planoId]: { nome: "", previsao_data: "" } }));
@@ -129,7 +133,9 @@ const PlanoTratamento = ({ clienteId, planosTratamento, setPlanosTratamento, fas
                 value={faseForm[p.id]?.nome || ""} onChange={e => setFaseForm(prev => ({ ...prev, [p.id]: { ...prev[p.id], nome: e.target.value } }))} />
               <input type="date" style={{ ...inp, width: 140, padding: "7px 10px", fontSize: ".8rem" }}
                 value={faseForm[p.id]?.previsao_data || ""} onChange={e => setFaseForm(prev => ({ ...prev, [p.id]: { ...prev[p.id], previsao_data: e.target.value } }))} />
-              <button style={{ ...btn("ghost"), padding: "7px 10px" }} onClick={() => adicionarFase(p.id)}><Icon name="plus" size={13} /></button>
+              <button style={{ ...btn("ghost"), padding: "7px 10px", opacity: salvandoFase.has(p.id) ? .6 : 1 }} disabled={salvandoFase.has(p.id)} onClick={() => adicionarFase(p.id)}>
+                {salvandoFase.has(p.id) ? <Spinner size={13} /> : <Icon name="plus" size={13} />}
+              </button>
             </div>
           </div>
         ))}

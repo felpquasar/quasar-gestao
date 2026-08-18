@@ -20,11 +20,12 @@ const SetupTenant = ({ email, onReady, onLogout }) => {
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
+  const [segmentosErro, setSegmentosErro] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("nome");
-      if (error) setErro("Não foi possível carregar os tipos de negócio. Recarregue a página e tente de novo.");
+      if (error) { setSegmentosErro(true); setErro("Não foi possível carregar os tipos de negócio. Recarregue a página e tente de novo."); }
       setSegmentos(data || []);
       if (data?.length === 1) setSegmento(data[0].id);
       setCarregandoSegmentos(false);
@@ -33,6 +34,7 @@ const SetupTenant = ({ email, onReady, onLogout }) => {
 
   const criar = async (e) => {
     e?.preventDefault();
+    if (segmentosErro) { setErro("Não foi possível carregar os tipos de negócio. Recarregue a página e tente de novo."); return; }
     if (!segmento) { setErro("Escolha o tipo de negócio."); return; }
     if (segmento === "saude" && !subSegmento) { setErro("Escolha a especialidade."); return; }
     if (!nome.trim()) { setErro("Informe o nome do negócio."); return; }

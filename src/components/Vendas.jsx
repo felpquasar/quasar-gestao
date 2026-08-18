@@ -328,7 +328,13 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
       notify("Venda atualizada.");
     } catch (err) {
       console.error(err);
-      notify(err?.message || err?.details || "Erro ao atualizar venda.", "error");
+      // Fecha o modal em vez de deixar reabrir "Editar" com o mesmo formulário: se a falha aconteceu
+      // no meio do caminho, estoque/sessão já podem ter sido ajustados no banco — reabrir do zero evita
+      // reenviar o mesmo cálculo por cima de novo (duplicaria o ajuste). Recarregue a página se precisar
+      // conferir o que já foi salvo antes de editar de novo.
+      notify((err?.message || err?.details || "Erro ao atualizar venda.") + " Recarregue a página antes de editar de novo, algumas alterações podem já ter sido salvas.", "error");
+      setModalEditar(false);
+      setEditVenda(null);
     } finally { setSaving(false); }
   };
 

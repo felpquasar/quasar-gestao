@@ -51,7 +51,11 @@ const DocumentosClinicos = ({ tenantId, clienteId, documentosClinicos, setDocume
       .insert({ cliente_id: clienteId, tipo, storage_path: path, legenda: legenda || null })
       .select().single();
     setEnviando(false);
-    if (error) { notify("Erro ao salvar registro do arquivo.", "error"); return; }
+    if (error) {
+      const { error: cleanupErro } = await supabase.storage.from(BUCKET).remove([path]); // desfaz o upload — sem isso o arquivo fica órfão no armazenamento
+      notify(cleanupErro ? "Erro ao salvar registro do arquivo. O arquivo enviado pode ter ficado no armazenamento." : "Erro ao salvar registro do arquivo.", "error");
+      return;
+    }
     setDocumentosClinicos(prev => [data, ...prev]);
     setLegenda("");
     if (fileRef.current) fileRef.current.value = "";
