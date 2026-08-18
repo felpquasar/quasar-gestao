@@ -292,11 +292,13 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
         if (crPago?.length) setContasReceber(prev => prev.map(x => x.venda_id === editVenda.id ? { ...x, status: "pago", data_pagamento: today() } : x));
       } else if (editSaldoRestante > 0) {
         const vencimento = addDays(editForm.data, Number(editForm.prazo));
-        const { data: crUpd } = await supabase.from("contas_receber")
-          .update({ valor: editSaldoRestante, cliente_id: Number(editForm.clienteId), data_vencimento: vencimento })
-          .eq("venda_id", editVenda.id).eq("status", "pendente").select();
-        if (crUpd?.length) {
-          setContasReceber(prev => prev.map(x => x.venda_id === editVenda.id && x.status === "pendente" ? { ...x, valor: editSaldoRestante, cliente_id: Number(editForm.clienteId), data_vencimento: vencimento } : x));
+        // Reaproveita qualquer cobrança já vinculada a essa venda (mesmo que esteja "pago" — reabrir em vez de duplicar).
+        const { data: crExistente } = await supabase.from("contas_receber").select("id").eq("venda_id", editVenda.id).limit(1);
+        if (crExistente?.length) {
+          const { data: crUpd } = await supabase.from("contas_receber")
+            .update({ valor: editSaldoRestante, cliente_id: Number(editForm.clienteId), data_vencimento: vencimento, status: "pendente", data_pagamento: null })
+            .eq("id", crExistente[0].id).select();
+          if (crUpd?.length) setContasReceber(prev => prev.map(x => x.id === crExistente[0].id ? crUpd[0] : x));
         } else {
           const cli = clientes.find(c => c.id === Number(editForm.clienteId));
           const { data: crNovo } = await supabase.from("contas_receber").insert({

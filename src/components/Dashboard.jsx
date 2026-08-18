@@ -137,11 +137,13 @@ const Dashboard = ({ produtos, clientes, vendas, movimentos, contasReceber, cont
     return Object.entries(m).sort((a, b) => b[1] - a[1]);
   }, [dp]);
 
-  // "Recebido" conta só o que entrou de fato: venda paga = total; venda pendente parcelada = só a entrada.
+  // "Recebido" conta só o que entrou de fato: venda paga = total; venda pendente parcelada = entrada + parciais já pagos na cobrança vinculada.
   const totalRecebidoVendas = useMemo(() => vendas.filter(v => v.status !== "cancelado").reduce((a, v) => {
-    const recebido = v.status === "pago" ? Number(v.total) : (v.forma_pagamento === "parcelado" ? Number(v.valor_entrada || 0) : Number(v.total));
-    return a + recebido;
-  }, 0), [vendas]);
+    if (v.status === "pago") return a + Number(v.total);
+    if (v.forma_pagamento !== "parcelado") return a + Number(v.total);
+    const cr = (contasReceber || []).find(c => c.venda_id === v.id);
+    return a + Number(v.valor_entrada || 0) + Number(cr?.valor_pago || 0);
+  }, 0), [vendas, contasReceber]);
 
   const saldoCaixa = useMemo(() => {
     const saidasCP = (contasPagar || []).filter(cp => cp.status === "pago").reduce((a, c) => a + Number(c.valor), 0);

@@ -12,10 +12,12 @@ const Financeiro = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar
   const qtdReceberVencidas = contasReceber.filter(cr => cr.status !== "pago" && cr.data_vencimento < today()).length;
   const qtdPagarVencidas = contasPagar.filter(cp => cp.status !== "pago" && cp.data_vencimento < today()).length;
 
-  // Conta só o que já entrou de fato: venda paga = total; venda pendente parcelada = só a entrada; demais pendentes (sem cobrança rastreada) = total, igual ao resto do app.
+  // Conta só o que já entrou de fato: venda paga = total; venda pendente parcelada = entrada + parciais já pagos na cobrança vinculada; demais pendentes (sem cobrança rastreada) = total, igual ao resto do app.
   const totalVendas = (vendas || []).filter(v => v.status !== "cancelado").reduce((a, v) => {
-    const recebido = v.status === "pago" ? Number(v.total) : (v.forma_pagamento === "parcelado" ? Number(v.valor_entrada || 0) : Number(v.total));
-    return a + recebido;
+    if (v.status === "pago") return a + Number(v.total);
+    if (v.forma_pagamento !== "parcelado") return a + Number(v.total);
+    const cr = (contasReceber || []).find(c => c.venda_id === v.id);
+    return a + Number(v.valor_entrada || 0) + Number(cr?.valor_pago || 0);
   }, 0);
   const totalFornecedores = contasPagar.filter(cp => cp.status === "pago").reduce((a, c) => a + Number(c.valor), 0);
   const totalDespesas = (despesas || []).reduce((a, d) => a + Number(d.valor), 0);
