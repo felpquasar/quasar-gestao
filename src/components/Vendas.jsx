@@ -342,11 +342,11 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
     const { error } = await supabase.from("vendas").update({ status: "pago" }).eq("id", v.id).select().single();
     if (error) { notify("Erro ao atualizar.", "error"); return; }
     setVendas(prev => prev.map(x => x.id === v.id ? { ...x, status: "pago" } : x));
-    const { data: cr } = await supabase.from("contas_receber")
+    const { data: cr, error: crErro } = await supabase.from("contas_receber")
       .update({ status: "pago", data_pagamento: today() })
       .eq("venda_id", v.id).eq("status", "pendente").select();
     if (cr?.length) setContasReceber(prev => prev.map(x => x.venda_id === v.id ? { ...x, status: "pago", data_pagamento: today() } : x));
-    notify("Venda marcada como paga.");
+    notify(crErro ? "Venda marcada como paga, mas a cobrança vinculada não pôde ser atualizada." : "Venda marcada como paga.", crErro ? "error" : "ok");
   };
 
   const exportarCSV = () => {

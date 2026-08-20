@@ -53,9 +53,16 @@ const styles = `
   @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 `;
 
+// O evento PASSWORD_RECOVERY do supabase-js não é reenviado pra quem assina depois
+// dele já ter disparado — se o cliente processar o link de recuperação (construído no
+// import de lib/supabase.js, antes do primeiro useEffect rodar) antes do listener abaixo
+// se inscrever, o evento passa batido. Ler a URL direto aqui fecha essa corrida.
+const linkDeRecuperacao = () =>
+  /type=recovery/.test(window.location.hash) || /type=recovery/.test(window.location.search);
+
 export default function App() {
   const [session, setSession] = useState(undefined);
-  const [recuperando, setRecuperando] = useState(false); // link de "esqueci minha senha" clicado
+  const [recuperando, setRecuperando] = useState(linkDeRecuperacao); // link de "esqueci minha senha" clicado
   const [tenantId, setTenantId] = useState(undefined); // undefined=checando, null=sem loja, uuid=ok
   const [aba, setAba] = useState("dashboard");
   const [sidebar, setSidebar] = useState(true);

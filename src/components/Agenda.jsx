@@ -80,11 +80,12 @@ const Agenda = ({ t, agendamentos, setAgendamentos, clientes, notify }) => {
       const horaAtual = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
       if (form.hora < horaAtual) { notify("Não é possível agendar para um horário que já passou hoje.", "error"); return; }
     }
-    // Trava de conflito: nenhum outro agendamento (não cancelado) pode se sobrepor no mesmo dia.
+    // Trava de conflito: nenhum outro agendamento (não cancelado/faltou) pode se sobrepor no mesmo dia.
+    // "Faltou" libera o horário — o cliente não veio, o horário fica vago pra outro.
     const inicioNovo = paraMinutos(form.hora);
     const fimNovo = inicioNovo + duracao;
     const conflito = agendamentos.some(a => {
-      if (a.data !== form.data || a.id === editando?.id || a.status === "cancelado") return false;
+      if (a.data !== form.data || a.id === editando?.id || a.status === "cancelado" || a.status === "faltou") return false;
       const ini = paraMinutos((a.hora || "").slice(0, 5));
       const fim = ini + Number(a.duracao_min || 30);
       return inicioNovo < fim && ini < fimNovo;

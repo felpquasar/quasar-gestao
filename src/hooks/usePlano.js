@@ -8,7 +8,7 @@ export function usePlano(tenantId) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    if (!tenantId) { setPlano("nucleo"); setCarregando(true); return; }
+    if (!tenantId) { setPlano("nucleo"); setCarregando(false); return; }
     let ativo = true;
     setCarregando(true);
     supabase.rpc("current_plano").then(({ data }) => {

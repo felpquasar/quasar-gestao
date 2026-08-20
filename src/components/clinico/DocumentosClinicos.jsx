@@ -24,20 +24,35 @@ const DocumentosClinicos = ({ tenantId, clienteId, documentosClinicos, setDocume
   // upload que mantém a contagem igual faria o efeito não disparar de novo).
   const chavesLista = lista.map(d => d.storage_path).join("|");
 
+  const EXPIRACAO_URL = 3600;
+
+  const renovarUrls = async (paths, ativoRef) => {
+    if (paths.length === 0) return;
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrls(paths, EXPIRACAO_URL);
+    if (!ativoRef.current || !data) return;
+    const novo = {};
+    data.forEach(r => { if (r.signedUrl) novo[r.path] = r.signedUrl; });
+    setUrls(prev => ({ ...prev, ...novo }));
+  };
+
   useEffect(() => {
-    let ativo = true;
+    const ativoRef = { current: true };
     const faltando = lista.map(d => d.storage_path).filter(p => !urls[p]);
-    if (faltando.length === 0) return;
-    (async () => {
-      const { data } = await supabase.storage.from(BUCKET).createSignedUrls(faltando, 3600);
-      if (!ativo || !data) return;
-      const novo = {};
-      data.forEach(r => { if (r.signedUrl) novo[r.path] = r.signedUrl; });
-      setUrls(prev => ({ ...prev, ...novo }));
-    })();
-    return () => { ativo = false; };
+    renovarUrls(faltando, ativoRef);
+    return () => { ativoRef.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chavesLista, clienteId]);
+
+  // Renova os links antes de expirarem — sem isso, uma sessão aberta por mais de 1h
+  // passa a mostrar documento quebrado sem nenhum aviso.
+  useEffect(() => {
+    const ativoRef = { current: true };
+    const paths = lista.map(d => d.storage_path);
+    if (paths.length === 0) return;
+    const id = setInterval(() => renovarUrls(paths, ativoRef), (EXPIRACAO_URL - 300) * 1000);
+    return () => { ativoRef.current = false; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chavesLista]);
 
   const enviar = async (e) => {
     const file = e.target.files?.[0];
