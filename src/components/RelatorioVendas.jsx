@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { fmt } from '../lib/utils';
+import { fmt, brDate, exportCSV } from '../lib/utils';
 import { inp, btn } from '../styles/shared';
 import Icon from './ui/Icon';
 
@@ -10,25 +10,6 @@ const MESES_OPT = [
 ];
 const FORMA_LABEL = { a_vista: "À Vista", cartao: "Cartão", pix: "Pix", parcelado: "Parcelado" };
 const FORMA_COR = { a_vista: "#4caf82", cartao: "#6b9fd4", pix: "#5cb8d4", parcelado: "#e8a020" };
-
-const csvCell = v => {
-  const s = String(v);
-  return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
-const exportCSV = (rows, filename) => {
-  const csv = rows.map(r => r.map(csvCell).join(";")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-};
-
-const brDate = ymd => {
-  if (!ymd) return "";
-  const [y, m, d] = ymd.slice(0, 10).split("-");
-  return `${d}/${m}/${y}`;
-};
 
 const RelatorioVendas = ({ t = (k) => k, vendas, clientes, produtos }) => {
   const anoAtual = new Date().getFullYear();

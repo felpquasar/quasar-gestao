@@ -13,3 +13,26 @@ export const addDays = (date, days) => {
   d.setDate(d.getDate() + days);
   return isoLocal(d);
 };
+
+export const brDate = (ymd) => {
+  if (!ymd) return "";
+  const [y, m, d] = ymd.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+};
+
+// Escapa uma célula de CSV: aspas quando tem ; " ou quebra de linha, e neutraliza
+// caractere de fórmula (= + - @) no início — abrir no Excel/Sheets não deve
+// interpretar texto de usuário (obs, nome) como fórmula.
+export const csvCell = (v) => {
+  let s = String(v);
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+export const exportCSV = (rows, filename) => {
+  const csv = rows.map(r => r.map(csvCell).join(";")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};

@@ -1,17 +1,9 @@
 import { useMemo } from 'react';
-import { fmt, today, saldoCr } from '../lib/utils';
+import { fmt, today, saldoCr, exportCSV } from '../lib/utils';
 import { btn } from '../styles/shared';
 import Icon from './ui/Icon';
 
 const diasAtraso = v => Math.floor((new Date(today() + "T12:00:00") - new Date(v + "T12:00:00")) / 86400000);
-
-const exportCSV = (rows, filename) => {
-  const csv = rows.map(r => r.join(";")).join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-};
 
 const RelatorioInadimplencia = ({ t = (k) => k, contasReceber, clientes }) => {
   const vencidas = useMemo(() =>

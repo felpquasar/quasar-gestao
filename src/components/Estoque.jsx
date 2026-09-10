@@ -8,10 +8,11 @@ import Modal from './ui/Modal';
 import Field from './ui/Field';
 import Spinner from './ui/Spinner';
 import Compras from './Compras';
+import ExtratoEstoque from './ExtratoEstoque';
 import EmptyState from './ui/EmptyState';
 import Confirm from './ui/Confirm';
 
-const TABS = [{ id: "produtos", label: "Produtos" }, { id: "compras", label: "Compras" }];
+const TABS = [{ id: "produtos", label: "Produtos" }, { id: "compras", label: "Compras" }, { id: "extrato", label: "Extrato" }];
 
 const Estoque = ({ produtos, setProdutos, setMovimentos, notify, fornecedores, setContasPagar, pedidosCompra, setPedidosCompra, setDespesas }) => {
   const isMobile = useMobile();
@@ -155,6 +156,8 @@ td{padding:6px 10px;border-bottom:1px solid #eee}@media print{body{padding:0}}</
       {abaEstoque === "compras" && (
         <Compras produtos={produtos} setProdutos={setProdutos} setMovimentos={setMovimentos} fornecedores={fornecedores} setContasPagar={setContasPagar} pedidosCompra={pedidosCompra} setPedidosCompra={setPedidosCompra} setDespesas={setDespesas} notify={notify} />
       )}
+
+      {abaEstoque === "extrato" && <ExtratoEstoque produtos={produtos} notify={notify} />}
 
       {abaEstoque === "produtos" && (
         <div>

@@ -256,7 +256,7 @@ export default function App() {
               {aba === "agenda" && <Agenda t={t} agendamentos={agendamentos} setAgendamentos={setAgendamentos} clientes={clientes} notify={notify} />}
               {aba === "pacotes" && <Gate plano={plano} feature="pacotes" titulo={t("pacote")}><Pacotes t={t} pacotes={pacotes} setPacotes={setPacotes} pacotesCliente={pacotesCliente} setPacotesCliente={setPacotesCliente} clientes={clientes} setVendas={setVendas} notify={notify} /></Gate>}
               {aba === "financeiro" && <Gate plano={plano} feature="financeiro" titulo="Financeiro"><Financeiro t={t} contasReceber={contasReceber} setContasReceber={setContasReceber} contasPagar={contasPagar} setContasPagar={setContasPagar} fornecedores={fornecedores} setFornecedores={setFornecedores} clientes={clientes} vendas={vendas} setVendas={setVendas} despesas={despesas} setDespesas={setDespesas} notify={notify} /></Gate>}
-              {aba === "relatorios" && <Gate plano={plano} feature="relatorios" titulo="Relatórios"><Relatorios t={t} vendas={vendas} clientes={clientes} produtos={produtos} contasReceber={contasReceber} contasPagar={contasPagar} /></Gate>}
+              {aba === "relatorios" && <Gate plano={plano} feature="relatorios" titulo="Relatórios"><Relatorios t={t} vendas={vendas} clientes={clientes} produtos={produtos} contasReceber={contasReceber} contasPagar={contasPagar} pedidosCompra={pedidosCompra} fornecedores={fornecedores} /></Gate>}
               {aba === "admin" && isSuperAdmin && <Admin notify={notify} />}
             </div>
           }

@@ -1,5 +1,9 @@
 import { useState, useMemo } from 'react';
-import { fmt } from '../lib/utils';
+import { fmt, exportCSV } from '../lib/utils';
+import { btn } from '../styles/shared';
+import Icon from './ui/Icon';
+
+const PERIODO_LABEL = { mes: "Este_Mes", semana: "7_dias", trimestre: "Trimestre", tudo: "Tudo" };
 
 const RelatorioMargem = ({ vendas, produtos }) => {
   const [periodo, setPeriodo] = useState("mes");
@@ -57,17 +61,27 @@ const RelatorioMargem = ({ vendas, produtos }) => {
 
   const corMargem = (pct) => pct >= 30 ? "#4caf82" : pct >= 15 ? "#e8a020" : "#e05a5a";
 
+  const handleCSV = () => {
+    const rows = [
+      ["Produto", "Categoria", "Qtd Vendida", "Receita (R$)", "Custo (R$)", "Margem (R$)", "Margem (%)"],
+      ...margens.map(p => [p.nome, p.categoria, p.qtd, p.receita.toFixed(2), p.custo.toFixed(2), p.margem.toFixed(2), p.margemPct.toFixed(1)]),
+      ["TOTAL", "", "", totais.receita.toFixed(2), totais.custo.toFixed(2), totais.margem.toFixed(2), ""],
+    ];
+    exportCSV(rows, `Margem_Produto_${PERIODO_LABEL[periodo] || periodo}.csv`);
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: 8 }}>
         <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.6rem", color: "#c9a84c", margin: 0 }}>Margem por Produto</h2>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
           {[["mes", "Este Mês"], ["semana", "7 dias"], ["trimestre", "Trimestre"], ["tudo", "Tudo"]].map(([v, l]) => (
             <button key={v} onClick={() => setPeriodo(v)}
               style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${periodo === v ? "#ffbf00" : "#2a2a2a"}`, background: periodo === v ? "#ffbf0015" : "transparent", color: periodo === v ? "#ffbf00" : "#666", cursor: "pointer", fontSize: ".8rem" }}>
               {l}
             </button>
           ))}
+          <button style={btn("ghost")} onClick={handleCSV} disabled={margens.length === 0}><Icon name="print" size={14} /> CSV</button>
         </div>
       </div>
 
