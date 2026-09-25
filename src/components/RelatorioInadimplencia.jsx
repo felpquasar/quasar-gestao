@@ -34,7 +34,6 @@ const RelatorioInadimplencia = ({ t = (k) => k, contasReceber, clientes }) => {
         const sev = c.maxDias > 90 ? "Crítico" : c.maxDias > 30 ? "Alto" : "Baixo";
         return [c.nome, c.qtd, c.total.toFixed(2), c.maxDias, sev];
       }),
-      ["TOTAL", vencidas.length, totalVencido.toFixed(2), maxDiasGeral, ""],
     ], "Inadimplencia.csv");
   };
 

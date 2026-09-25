@@ -15,6 +15,28 @@ const STATUS_LABEL = { pendente: "Pendente", recebido: "Recebido", cancelado: "C
 
 const ITEM_VAZIO = { produto_id: "", quantidade: "", custo_unitario: "" };
 
+// Junta linhas do mesmo produto dentro do mesmo pedido. Sem isso, escolher duas
+// vezes o mesmo produto gravava duas linhas idênticas em `pedido_itens` e, no
+// recebimento, duas entradas de estoque — custo e quantidade fantasma.
+// Quantidade soma; custo unitário vira média ponderada, pra o total do pedido
+// não mudar quando as duas linhas tinham custo diferente.
+const consolidarItens = (itens) => {
+  const mapa = new Map();
+  itens.forEach(it => {
+    const pid = Number(it.produto_id);
+    const qtd = Number(it.quantidade);
+    const custo = Number(it.custo_unitario) || 0;
+    const atual = mapa.get(pid);
+    if (!atual) { mapa.set(pid, { produto_id: pid, quantidade: qtd, custo_unitario: custo }); return; }
+    const qtdTotal = atual.quantidade + qtd;
+    atual.custo_unitario = qtdTotal > 0
+      ? (atual.quantidade * atual.custo_unitario + qtd * custo) / qtdTotal
+      : custo;
+    atual.quantidade = qtdTotal;
+  });
+  return [...mapa.values()].map(it => ({ ...it, custo_unitario: Number(it.custo_unitario.toFixed(4)) }));
+};
+
 const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContasPagar, pedidosCompra, setPedidosCompra, setDespesas, notify }) => {
   const isMobile = useMobile();
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -117,7 +139,7 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
       if (pe) { notify(`Erro ao criar pedido: ${pe.message}`, "error"); return; }
 
       const { data: itensData, error: ie } = await supabase.from("pedido_itens").insert(
-        validos.map(it => ({ pedido_id: pedido.id, produto_id: Number(it.produto_id), quantidade: Number(it.quantidade), custo_unitario: Number(it.custo_unitario) || 0 }))
+        consolidarItens(validos).map(it => ({ pedido_id: pedido.id, ...it }))
       ).select();
       if (ie) { notify(`Erro ao salvar itens: ${ie.message}`, "error"); return; }
 
@@ -145,7 +167,7 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
 
       await supabase.from("pedido_itens").delete().eq("pedido_id", modalEditar.id);
       const { data: novosItens, error: ie } = await supabase.from("pedido_itens").insert(
-        validos.map(it => ({ pedido_id: modalEditar.id, produto_id: Number(it.produto_id), quantidade: Number(it.quantidade), custo_unitario: Number(it.custo_unitario) || 0 }))
+        consolidarItens(validos).map(it => ({ pedido_id: modalEditar.id, ...it }))
       ).select();
       if (ie) { notify(`Erro ao salvar itens: ${ie.message}`, "error"); return; }
 
@@ -204,9 +226,11 @@ const Compras = ({ produtos, setProdutos, setMovimentos, fornecedores, setContas
       const prodErro = prodResults.find(r => r.error);
       if (prodErro) { notify(`Erro ao atualizar estoque: ${prodErro.error.message}`, "error"); return; }
 
-      // Insere movimentos de entrada
+      // Insere movimentos de entrada — um por produto, não um por linha.
+      // Pedido antigo pode ter o mesmo produto em duas linhas; o cálculo de estoque
+      // acima já acumula, então duas linhas de movimento dobrariam o extrato.
       const movInserts = await Promise.all(
-        itens.map(it =>
+        consolidarItens(itens).map(it =>
           supabase.from("movimentos").insert({
             produto_id: it.produto_id,
             tipo: "entrada",

@@ -287,13 +287,27 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
       ];
       await supabase.from("venda_itens").insert(novoItens);
 
-      // Movimento de saída só para itens de produto (sessão não mexe em estoque)
-      for (const it of itensProdutoNovo) {
-        await supabase.from("movimentos").insert({
-          produto_id: Number(it.produtoId), tipo: "saida",
-          quantidade: Number(it.quantidade), data: editForm.data,
-          obs: `Edição venda #${String(editVenda.id).slice(-4)}`,
-        });
+      // Movimento pela VARIAÇÃO líquida, não pela quantidade cheia.
+      // Antes gravava uma saída nova do total de cada item sem estornar a saída da
+      // versão anterior, então editar uma venda debitava o estoque duas vezes no
+      // extrato (`produtos.estoque` ficava certo, o extrato não). `netChanges` já tem
+      // o delta usado pra corrigir o estoque acima: positivo = devolveu ao estoque,
+      // negativo = tirou mais. Delta zero não gera linha nenhuma.
+      const refEdicao = `Edição venda #${String(editVenda.id).slice(-4)}`;
+      const movsEdicao = Object.entries(netChanges)
+        // Produto apagado do cadastro: o loop de estoque acima já pulou, então o
+        // movimento também tem que pular — senão vira linha órfã no extrato.
+        .filter(([pid, delta]) => Number(delta) !== 0 && produtos.some(p => p.id === Number(pid)))
+        .map(([pid, delta]) => ({
+          produto_id: Number(pid),
+          tipo: Number(delta) > 0 ? "entrada" : "saida",
+          quantidade: Math.abs(Number(delta)),
+          data: editForm.data,
+          obs: Number(delta) > 0 ? `${refEdicao} — estorno` : refEdicao,
+        }));
+      if (movsEdicao.length) {
+        const { error: me } = await supabase.from("movimentos").insert(movsEdicao);
+        if (me) throw me;
       }
 
       // Atualiza a venda

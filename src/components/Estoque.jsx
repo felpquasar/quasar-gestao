@@ -14,6 +14,35 @@ import Confirm from './ui/Confirm';
 
 const TABS = [{ id: "produtos", label: "Produtos" }, { id: "compras", label: "Compras" }, { id: "extrato", label: "Extrato" }];
 
+// Lista fechada. Categoria era campo livre e nasceram "Acessório" e "Acessórios"
+// como categorias diferentes — agrupamento por categoria devolvia número errado
+// sem dar erro nenhum. Valor antigo fora da lista continua aparecendo no select
+// (ver `opcoesCategoria`), pra edição de produto velho não trocar a categoria sozinha.
+const CATEGORIAS = ["Barba", "Cabelo", "Finalizador", "Acessório", "Outros"];
+
+// Motivo do movimento manual em lista fechada. O campo `obs` era texto digitado e
+// acumulou 13 redações pra 7 eventos ("Ajuste estoque", "Ajuste de estoque",
+// "Ajuste do estoque - compra"...). O motivo agora vira prefixo padronizado do `obs`;
+// o detalhe livre continua existindo, mas depois do prefixo, como observação.
+const MOTIVOS_MOV = {
+  entrada: [
+    { id: "compra_avulsa", label: "Compra sem nota" },
+    { id: "ajuste", label: "Ajuste de estoque" },
+    { id: "devolucao", label: "Devolução de cliente" },
+    { id: "estorno", label: "Estorno de lançamento errado" },
+  ],
+  saida: [
+    { id: "ajuste", label: "Ajuste de estoque" },
+    { id: "brinde", label: "Brinde / cortesia" },
+    { id: "perda", label: "Perda, quebra ou vencimento" },
+    { id: "uso_interno", label: "Uso interno" },
+    { id: "estorno", label: "Estorno de lançamento errado" },
+  ],
+};
+const MOTIVO_LABEL = Object.fromEntries(
+  [...MOTIVOS_MOV.entrada, ...MOTIVOS_MOV.saida].map(m => [m.id, m.label])
+);
+
 const Estoque = ({ produtos, setProdutos, setMovimentos, notify, fornecedores, setContasPagar, pedidosCompra, setPedidosCompra, setDespesas }) => {
   const isMobile = useMobile();
   const [abaEstoque, setAbaEstoque] = useState("produtos");
@@ -29,8 +58,16 @@ const Estoque = ({ produtos, setProdutos, setMovimentos, notify, fornecedores, s
   const [ordenarDir, setOrdenarDir] = useState("asc");
   const [form, setForm] = useState({ nome: "", categoria: "", unidade: "un", estoque: 0, custo: "", lucro: "", preco: "" });
   const [editForm, setEditForm] = useState({ nome: "", categoria: "", unidade: "un", custo: "", lucro: "", preco: "" });
-  const [movForm, setMovForm] = useState({ tipo: "entrada", quantidade: "", obs: "", data: today() });
+  const [movForm, setMovForm] = useState({ tipo: "entrada", motivo: "", quantidade: "", obs: "", data: today() });
   const [confirmState, setConfirmState] = useState(null);
+
+  // Categoria fora da lista fechada (produto cadastrado antes da trava) continua
+  // disponível no select do próprio produto — abrir a edição pra mudar o preço
+  // não pode reclassificar o produto sozinho. Só não dá pra escolher esse valor
+  // em nenhum outro produto, então a variação some conforme você for ajustando.
+  const opcoesCategoria = editForm.categoria && !CATEGORIAS.includes(editForm.categoria)
+    ? [...CATEGORIAS, editForm.categoria]
+    : CATEGORIAS;
 
   const calcPreco = (custo, lucro) => { const c = Number(custo), l = Number(lucro); if (!c || !l || l < 0) return ""; return (c * (1 + l / 100)).toFixed(2); };
   const calcLucro = (custo, preco) => { const c = Number(custo), p = Number(preco); if (!c || !p || p <= c) return ""; return (((p - c) / c) * 100).toFixed(1); };
@@ -74,21 +111,47 @@ const Estoque = ({ produtos, setProdutos, setMovimentos, notify, fornecedores, s
   };
 
   const lancarMovimento = async () => {
-    const qtd = Number(movForm.quantidade); if (!qtd || qtd <= 0) return; setSaving(true);
+    const qtd = Number(movForm.quantidade);
+    if (!qtd || qtd <= 0) { notify("Informe uma quantidade maior que zero.", "error"); return; }
+    // Motivo obrigatório: 14 movimentos no histórico ficaram sem nenhuma pista do
+    // que eram porque `obs` aceitava vazio. Agora todo movimento manual nasce classificado.
+    if (!movForm.motivo) { notify("Selecione o motivo do movimento.", "error"); return; }
+    setSaving(true);
     const prod = modalMov;
     const novoEstoque = movForm.tipo === "entrada" ? prod.estoque + qtd : Math.max(prod.estoque - qtd, 0);
     const { error: pe } = await supabase.from("produtos").update({ estoque: novoEstoque }).eq("id", prod.id);
     if (pe) { setSaving(false); notify("Erro ao atualizar estoque", "error"); return; }
-    const { data: mov, error: me } = await supabase.from("movimentos").insert({ produto_id: prod.id, tipo: movForm.tipo, quantidade: qtd, obs: movForm.obs, data: movForm.data }).select().single();
+    const detalhe = movForm.obs.trim();
+    const obs = detalhe ? `${MOTIVO_LABEL[movForm.motivo]} — ${detalhe}` : MOTIVO_LABEL[movForm.motivo];
+    const { data: mov, error: me } = await supabase.from("movimentos").insert({ produto_id: prod.id, tipo: movForm.tipo, quantidade: qtd, obs, data: movForm.data }).select().single();
     setSaving(false);
     if (me) { notify("Erro ao registrar movimento", "error"); return; }
     setProdutos(prev => prev.map(p => p.id === prod.id ? { ...p, estoque: novoEstoque } : p));
     setMovimentos(prev => [mov, ...prev]);
-    setModalMov(null); setMovForm({ tipo: "entrada", quantidade: "", obs: "", data: today() }); notify("Movimento registrado.");
+    setModalMov(null); setMovForm({ tipo: "entrada", motivo: "", quantidade: "", obs: "", data: today() }); notify("Movimento registrado.");
   };
 
+  // Apagar produto com histórico era o que gerava movimento e item de pedido
+  // órfãos: não há chave estrangeira segurando, então a linha ficava apontando
+  // pra um id que não existe mais e saía de qualquer relatório por produto.
+  // Enquanto a FK não existe no banco, a trava fica aqui.
   const excluir = (id) => {
     setConfirmState({ msg: "Excluir este produto?", onConfirm: async () => {
+      const [mov, vi, pi] = await Promise.all([
+        supabase.from("movimentos").select("id", { count: "exact", head: true }).eq("produto_id", id),
+        supabase.from("venda_itens").select("id", { count: "exact", head: true }).eq("produto_id", id),
+        supabase.from("pedido_itens").select("id", { count: "exact", head: true }).eq("produto_id", id),
+      ]);
+      if (mov.error || vi.error || pi.error) { notify("Não foi possível verificar o histórico do produto. Tente de novo.", "error"); return; }
+      const usos = (mov.count || 0) + (vi.count || 0) + (pi.count || 0);
+      if (usos > 0) {
+        const partes = [];
+        if (mov.count) partes.push(`${mov.count} movimento(s) de estoque`);
+        if (vi.count) partes.push(`${vi.count} item(ns) de venda`);
+        if (pi.count) partes.push(`${pi.count} item(ns) de compra`);
+        notify(`Produto tem ${partes.join(", ")} no histórico e não pode ser excluído — apagar deixaria esses registros sem produto. Zere o estoque e pare de usar.`, "error");
+        return;
+      }
       const { error } = await supabase.from("produtos").delete().eq("id", id);
       if (error) { notify("Erro ao excluir", "error"); return; }
       setProdutos(prev => prev.filter(p => p.id !== id)); notify("Produto excluído.");
@@ -197,7 +260,7 @@ td{padding:6px 10px;border-bottom:1px solid #eee}@media print{body{padding:0}}</
                     <td style={{ padding: ".8rem 1rem" }}>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => abrirEdicao(p)} style={{ ...btn("ghost"), padding: "5px 10px", fontSize: ".75rem" }}><Icon name="pencil" size={13} /></button>
-                        <button onClick={() => setModalMov(p)} style={{ ...btn("ghost"), padding: "5px 10px", fontSize: ".75rem" }}><Icon name="history" size={13} /> Movimentar</button>
+                        <button onClick={() => { setMovForm({ tipo: "entrada", motivo: "", quantidade: "", obs: "", data: today() }); setModalMov(p); }} style={{ ...btn("ghost"), padding: "5px 10px", fontSize: ".75rem" }}><Icon name="history" size={13} /> Movimentar</button>
                         <button onClick={() => abrirHistorico(p)} style={{ ...btn("ghost"), padding: "5px 10px", fontSize: ".75rem" }} title="Histórico de preços"><Icon name="chart" size={13} /></button>
                         <button onClick={() => excluir(p.id)} style={{ ...btn("danger"), padding: "5px 10px", fontSize: ".75rem" }}><Icon name="trash" size={13} /></button>
                       </div>
@@ -212,7 +275,12 @@ td{padding:6px 10px;border-bottom:1px solid #eee}@media print{body{padding:0}}</
           {modalProd && (
             <Modal title="Cadastrar Produto" onClose={() => setModalProd(false)}>
               <Field label="Nome do Produto"><input style={inp} value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} /></Field>
-              <Field label="Categoria"><input style={inp} value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} /></Field>
+              <Field label="Categoria">
+                <select style={inp} value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
+                  <option value="">Selecione...</option>
+                  {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "1rem" }}>
                 <Field label="Estoque Inicial"><input style={inp} type="number" value={form.estoque} onChange={e => setForm({ ...form, estoque: e.target.value })} /></Field>
                 <Field label="Unidade"><input style={inp} value={form.unidade} onChange={e => setForm({ ...form, unidade: e.target.value })} /></Field>
@@ -255,7 +323,7 @@ td{padding:6px 10px;border-bottom:1px solid #eee}@media print{body{padding:0}}</
               <Field label="Tipo">
                 <div style={{ display: "flex", gap: 8 }}>
                   {["entrada", "saida"].map(t => (
-                    <button key={t} onClick={() => setMovForm({ ...movForm, tipo: t })}
+                    <button key={t} onClick={() => setMovForm({ ...movForm, tipo: t, motivo: "" })}
                       style={{ ...btn(movForm.tipo === t ? "primary" : "ghost"), flex: 1, justifyContent: "center", textTransform: "capitalize" }}>
                       {t === "saida" ? "Saída" : "Entrada"}
                     </button>
@@ -266,7 +334,13 @@ td{padding:6px 10px;border-bottom:1px solid #eee}@media print{body{padding:0}}</
                 <Field label="Quantidade"><input style={inp} type="number" value={movForm.quantidade} onChange={e => setMovForm({ ...movForm, quantidade: e.target.value })} /></Field>
                 <Field label="Data"><input style={inp} type="date" value={movForm.data} onChange={e => setMovForm({ ...movForm, data: e.target.value })} /></Field>
               </div>
-              <Field label="Observação"><input style={inp} value={movForm.obs} onChange={e => setMovForm({ ...movForm, obs: e.target.value })} /></Field>
+              <Field label="Motivo">
+                <select style={inp} value={movForm.motivo} onChange={e => setMovForm({ ...movForm, motivo: e.target.value })}>
+                  <option value="">Selecione...</option>
+                  {MOTIVOS_MOV[movForm.tipo].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Detalhe (opcional)"><input style={inp} value={movForm.obs} onChange={e => setMovForm({ ...movForm, obs: e.target.value })} placeholder="Ex.: fornecedor, cliente, número da nota" /></Field>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
                 <button style={btn("ghost")} onClick={() => setModalMov(null)}>Cancelar</button>
                 <button style={btn("primary")} onClick={lancarMovimento} disabled={saving}>{saving ? <><Spinner size={14} color="#0a0a08" /> Salvando...</> : "Confirmar"}</button>
@@ -312,7 +386,12 @@ td{padding:6px 10px;border-bottom:1px solid #eee}@media print{body{padding:0}}</
                 <span style={{ color: "#c9a84c", fontWeight: 700 }}>{modalEdit.estoque} {modalEdit.unidade}</span>
               </div>
               <Field label="Nome do Produto"><input style={inp} value={editForm.nome} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} /></Field>
-              <Field label="Categoria"><input style={inp} value={editForm.categoria} onChange={e => setEditForm({ ...editForm, categoria: e.target.value })} /></Field>
+              <Field label="Categoria">
+                <select style={inp} value={editForm.categoria} onChange={e => setEditForm({ ...editForm, categoria: e.target.value })}>
+                  <option value="">Selecione...</option>
+                  {opcoesCategoria.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "1rem" }}>
                 <Field label="Unidade"><input style={inp} value={editForm.unidade} onChange={e => setEditForm({ ...editForm, unidade: e.target.value })} /></Field>
                 <div />

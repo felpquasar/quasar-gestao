@@ -65,30 +65,43 @@ const RelatorioVendas = ({ t = (k) => k, vendas, clientes, produtos }) => {
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [filtradas]);
 
-  const handleCSV = () => {
-    const rows = [["Pedido", "Data", "Cliente", "Produto", "Qtd", "Valor (R$)", "Subtotal Item (R$)", "Desconto (%)", "Total Venda (R$)", "Status", "Forma Pagamento"]];
+  const sufixoArquivo = `${ano}${mes !== "00" ? "_" + mes : ""}`;
+
+  // Dois CSVs em vez de um. Misturar cabeçalho de venda e item na mesma linha
+  // achata dois grãos diferentes: quem soma a coluna "Total Venda" conta a
+  // mesma venda uma vez por item, e quem conta linhas conta item achando que
+  // é venda. Cada arquivo agora tem uma linha por entidade, sem célula em branco.
+  const handleCSVVendas = () => {
+    const rows = [["Pedido", "Data", "Cliente", "Qtd Itens", "Subtotal Itens (R$)", "Desconto (%)", "Total Venda (R$)", "Status", "Forma Pagamento"]];
+    filtradas.forEach(v => {
+      const cliente = clientes.find(c => c.id === v.cliente_id)?.nome ?? "—";
+      const itensVenda = v.venda_itens || [];
+      const subtotal = itensVenda.reduce((a, it) => a + Number(it.quantidade) * Number(it.preco), 0);
+      rows.push([
+        v.id, brDate(v.data), cliente, itensVenda.length, subtotal.toFixed(2),
+        v.desconto_pct ?? "", Number(v.total).toFixed(2), v.status, v.forma_pagamento ?? "",
+      ]);
+    });
+    exportCSV(rows, `Pedidos_${sufixoArquivo}.csv`);
+  };
+
+  const handleCSVItens = () => {
+    const rows = [["Pedido", "Data", "Cliente", "Produto", "Qtd", "Valor Unit. (R$)", "Subtotal Item (R$)"]];
     filtradas.forEach(v => {
       const cliente = clientes.find(c => c.id === v.cliente_id)?.nome ?? "—";
       const data = brDate(v.data);
-      const itensVenda = v.venda_itens || [];
-      if (itensVenda.length === 0) {
-        rows.push([v.id, data, cliente, "—", "", "", "", v.desconto_pct ?? "", Number(v.total).toFixed(2), v.status, v.forma_pagamento ?? ""]);
-      } else {
-        itensVenda.forEach((it, idx) => {
-          const produto = produtos.find(p => p.id === it.produto_id)?.nome ?? "Produto removido";
-          const subtotalItem = (Number(it.quantidade) * Number(it.preco)).toFixed(2);
-          rows.push([
-            v.id, data, cliente, produto,
-            it.quantidade, Number(it.preco).toFixed(2), subtotalItem,
-            idx === 0 ? (v.desconto_pct ?? "") : "",
-            idx === 0 ? Number(v.total).toFixed(2) : "",
-            idx === 0 ? v.status : "",
-            idx === 0 ? (v.forma_pagamento ?? "") : "",
-          ]);
-        });
-      }
+      (v.venda_itens || []).forEach(it => {
+        const produto = it.produto_id == null
+          ? "Sessão de pacote"
+          : produtos.find(p => p.id === it.produto_id)?.nome ?? "Produto removido";
+        rows.push([
+          v.id, data, cliente, produto,
+          it.quantidade, Number(it.preco).toFixed(2),
+          (Number(it.quantidade) * Number(it.preco)).toFixed(2),
+        ]);
+      });
     });
-    exportCSV(rows, `Pedidos_${ano}${mes !== "00" ? "_" + mes : ""}.csv`);
+    exportCSV(rows, `Pedidos_Itens_${sufixoArquivo}.csv`);
   };
 
   return (
@@ -102,7 +115,8 @@ const RelatorioVendas = ({ t = (k) => k, vendas, clientes, produtos }) => {
           <select value={mes} onChange={e => setMes(e.target.value)} style={{ ...inp, width: 148 }}>
             {MESES_OPT.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <button style={btn("ghost")} onClick={handleCSV}><Icon name="print" size={14} /> CSV</button>
+          <button style={btn("ghost")} onClick={handleCSVVendas} disabled={filtradas.length === 0}><Icon name="print" size={14} /> CSV vendas</button>
+          <button style={btn("ghost")} onClick={handleCSVItens} disabled={filtradas.length === 0}><Icon name="print" size={14} /> CSV itens</button>
         </div>
       </div>
 

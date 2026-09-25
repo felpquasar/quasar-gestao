@@ -54,11 +54,12 @@ const RelatorioDRE = ({ contasReceber, contasPagar }) => {
   const yBar = v => padT + chartH - (v / maxVal) * chartH;
   const hBar = v => Math.max((v / maxVal) * chartH, 1);
 
+  // Sem linha de TOTAL no corpo: ela vira um 13º mês chamado TOTAL e dobra
+  // qualquer soma feita sobre o arquivo. O total continua na tela.
   const handleCSV = () => {
     exportCSV([
       ["Mês", "Entradas (R$)", "Saídas (R$)", "Resultado (R$)"],
       ...meses.map(m => [m.label, m.entradas.toFixed(2), m.saidas.toFixed(2), m.resultado.toFixed(2)]),
-      ["TOTAL", totais.entradas.toFixed(2), totais.saidas.toFixed(2), totais.resultado.toFixed(2)],
     ], `DRE_${ano}.csv`);
   };
 

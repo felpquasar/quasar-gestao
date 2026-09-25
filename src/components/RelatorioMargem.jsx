@@ -61,11 +61,13 @@ const RelatorioMargem = ({ vendas, produtos }) => {
 
   const corMargem = (pct) => pct >= 30 ? "#4caf82" : pct >= 15 ? "#e8a020" : "#e05a5a";
 
+  // Sem linha de TOTAL no corpo: ela vira um "produto" chamado TOTAL pra quem
+  // lê o arquivo como dado, e dobra os valores em qualquer soma ou tabela
+  // dinâmica. O total continua na tela e o Excel soma a coluna sozinho.
   const handleCSV = () => {
     const rows = [
       ["Produto", "Categoria", "Qtd Vendida", "Receita (R$)", "Custo (R$)", "Margem (R$)", "Margem (%)"],
       ...margens.map(p => [p.nome, p.categoria, p.qtd, p.receita.toFixed(2), p.custo.toFixed(2), p.margem.toFixed(2), p.margemPct.toFixed(1)]),
-      ["TOTAL", "", "", totais.receita.toFixed(2), totais.custo.toFixed(2), totais.margem.toFixed(2), ""],
     ];
     exportCSV(rows, `Margem_Produto_${PERIODO_LABEL[periodo] || periodo}.csv`);
   };

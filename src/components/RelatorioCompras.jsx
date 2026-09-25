@@ -67,27 +67,41 @@ const RelatorioCompras = ({ pedidosCompra, fornecedores, produtos }) => {
 
   const totalGeral = filtrados.reduce((a, p) => a + Number(p.total), 0);
 
-  const handleCSV = () => {
-    const rows = [["Pedido", "Data", "Fornecedor", "Produto", "Qtd", "Custo Unit. (R$)", "Subtotal Item (R$)", "Total Pedido (R$)", "Status"]];
+  const sufixoArquivo = `${ano}${mes !== "00" ? "_" + mes : ""}`;
+
+  // Um arquivo por grão: pedidos (uma linha por pedido) e itens (uma linha por
+  // item). O formato antigo repetia o total do pedido na primeira linha e deixava
+  // as demais em branco, então somar a coluna dava certo por acidente e contar
+  // linhas dava errado sempre.
+  const handleCSVPedidos = () => {
+    const rows = [["Pedido", "Data", "Fornecedor", "Qtd Itens", "Total Pedido (R$)", "Status"]];
+    filtrados.forEach(p => {
+      const fornecedor = fornecedores.find(f => f.id === p.fornecedor_id)?.nome ?? "Sem fornecedor";
+      rows.push([
+        p.id, brDate(p.data_pedido), fornecedor,
+        (p.pedido_itens || []).length,
+        Number(p.total).toFixed(2),
+        STATUS_LABEL[p.status] || p.status,
+      ]);
+    });
+    exportCSV(rows, `Compras_${sufixoArquivo}.csv`);
+  };
+
+  const handleCSVItens = () => {
+    const rows = [["Pedido", "Data", "Fornecedor", "Produto", "Qtd", "Custo Unit. (R$)", "Subtotal Item (R$)"]];
     filtrados.forEach(p => {
       const fornecedor = fornecedores.find(f => f.id === p.fornecedor_id)?.nome ?? "Sem fornecedor";
       const data = brDate(p.data_pedido);
-      const itens = p.pedido_itens || [];
-      if (itens.length === 0) {
-        rows.push([p.id, data, fornecedor, "—", "", "", "", Number(p.total).toFixed(2), STATUS_LABEL[p.status] || p.status]);
-      } else {
-        itens.forEach((it, idx) => {
-          const produto = produtos.find(x => x.id === it.produto_id)?.nome ?? "Produto removido";
-          const subtotal = (Number(it.quantidade) * Number(it.custo_unitario)).toFixed(2);
-          rows.push([
-            p.id, data, fornecedor, produto, it.quantidade, Number(it.custo_unitario).toFixed(2), subtotal,
-            idx === 0 ? Number(p.total).toFixed(2) : "",
-            idx === 0 ? (STATUS_LABEL[p.status] || p.status) : "",
-          ]);
-        });
-      }
+      (p.pedido_itens || []).forEach(it => {
+        const produto = produtos.find(x => x.id === it.produto_id)?.nome ?? "Produto removido";
+        rows.push([
+          p.id, data, fornecedor, produto, it.quantidade,
+          Number(it.custo_unitario).toFixed(2),
+          (Number(it.quantidade) * Number(it.custo_unitario)).toFixed(2),
+        ]);
+      });
     });
-    exportCSV(rows, `Compras_${ano}${mes !== "00" ? "_" + mes : ""}.csv`);
+    exportCSV(rows, `Compras_Itens_${sufixoArquivo}.csv`);
   };
 
   return (
@@ -101,7 +115,8 @@ const RelatorioCompras = ({ pedidosCompra, fornecedores, produtos }) => {
           <select value={mes} onChange={e => setMes(e.target.value)} style={{ ...inp, width: 148 }}>
             {MESES_OPT.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <button style={btn("ghost")} onClick={handleCSV} disabled={filtrados.length === 0}><Icon name="print" size={14} /> CSV</button>
+          <button style={btn("ghost")} onClick={handleCSVPedidos} disabled={filtrados.length === 0}><Icon name="print" size={14} /> CSV pedidos</button>
+          <button style={btn("ghost")} onClick={handleCSVItens} disabled={filtrados.length === 0}><Icon name="print" size={14} /> CSV itens</button>
         </div>
       </div>
 
