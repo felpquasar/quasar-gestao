@@ -16,7 +16,10 @@ const Financeiro = ({ t = (k) => k, contasReceber, setContasReceber, contasPagar
   const totalVendas = (vendas || []).filter(v => v.status !== "cancelado").reduce((a, v) => {
     if (v.status === "pago") return a + Number(v.total);
     if (v.forma_pagamento !== "parcelado") return a + Number(v.total);
-    const cr = (contasReceber || []).find(c => c.venda_id === v.id);
+    // A entrada de uma venda parcelada agora também vira uma linha "pago" separada em contas_receber
+    // (pro DRE/Fluxo de Caixa enxergarem); aqui teria que ser a linha "pendente" (saldo) que carrega
+    // os pagamentos parciais, senão pega a linha errada e perde o valor_pago.
+    const cr = (contasReceber || []).find(c => c.venda_id === v.id && c.status === "pendente");
     return a + Number(v.valor_entrada || 0) + Number(cr?.valor_pago || 0);
   }, 0);
   const totalFornecedores = contasPagar.filter(cp => cp.status === "pago").reduce((a, c) => a + Number(c.valor), 0);

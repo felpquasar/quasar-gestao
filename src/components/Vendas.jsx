@@ -170,16 +170,39 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
         setPacotesCliente(prev => prev.map(pc => contagem[pc.id] ? { ...pc, sessoes_usadas: pc.sessoes_usadas + contagem[pc.id] } : pc));
       }
 
+      // DRE e Fluxo de Caixa só leem contas_receber — nunca vendas direto — então todo valor já
+      // recebido na hora (venda paga de cara, ou a entrada de uma venda parcelada) precisa virar
+      // uma linha "pago" aqui, senão some desses dois relatórios mesmo a venda existindo normal.
+      const cli = clientes.find(c => c.id === Number(form.clienteId));
+      const entradaPaga = form.forma === "parcelado" ? Number(form.entrada || 0) : 0;
+      const novasContas = [];
       if (form.status === "pendente" && saldoRestante > 0) {
         const vencimento = addDays(form.data, Number(form.prazo));
-        const cli = clientes.find(c => c.id === Number(form.clienteId));
-        const { data: cr } = await supabase.from("contas_receber").insert({
+        novasContas.push({
           venda_id: venda.id, cliente_id: Number(form.clienteId),
           descricao: `Venda #${String(venda.id).slice(-4)}${cli ? ` — ${cli.nome}` : ""}`,
           valor: saldoRestante, forma_pagamento: form.forma,
           data_emissao: form.data, data_vencimento: vencimento, status: "pendente",
-        }).select().single();
-        if (cr) setContasReceber(prev => [...prev, cr].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
+        });
+        if (entradaPaga > 0) {
+          novasContas.push({
+            venda_id: venda.id, cliente_id: Number(form.clienteId),
+            descricao: `Entrada — Venda #${String(venda.id).slice(-4)}${cli ? ` — ${cli.nome}` : ""}`,
+            valor: entradaPaga, forma_pagamento: form.forma,
+            data_emissao: form.data, data_vencimento: form.data, status: "pago", data_pagamento: form.data,
+          });
+        }
+      } else if (form.status === "pago") {
+        novasContas.push({
+          venda_id: venda.id, cliente_id: Number(form.clienteId),
+          descricao: `Venda #${String(venda.id).slice(-4)}${cli ? ` — ${cli.nome}` : ""}`,
+          valor: total, forma_pagamento: form.forma,
+          data_emissao: form.data, data_vencimento: form.data, status: "pago", data_pagamento: form.data,
+        });
+      }
+      if (novasContas.length) {
+        const { data: crs } = await supabase.from("contas_receber").insert(novasContas).select();
+        if (crs?.length) setContasReceber(prev => [...prev, ...crs].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
       }
       setVendas(prev => [{ ...venda, venda_itens: itensSalvar }, ...prev]);
       setModal(false); notify("Venda registrada.");
@@ -295,6 +318,21 @@ const Vendas = ({ t = (k) => k, vendas, setVendas, clientes, produtos, setProdut
           .update({ status: "pago", data_pagamento: today() })
           .eq("venda_id", editVenda.id).eq("status", "pendente").select();
         if (crPago?.length) setContasReceber(prev => prev.map(x => x.venda_id === editVenda.id ? { ...x, status: "pago", data_pagamento: today() } : x));
+        else {
+          // Não havia cobrança pendente pra reconciliar — venda passou a "pago" sem contas_receber
+          // (ex.: já nasceu paga). Cria uma pra DRE e Fluxo de Caixa baterem com o total recebido.
+          const { data: crExistentePago } = await supabase.from("contas_receber").select("id").eq("venda_id", editVenda.id).eq("status", "pago").limit(1);
+          if (!crExistentePago?.length) {
+            const cli = clientes.find(c => c.id === Number(editForm.clienteId));
+            const { data: crNovo } = await supabase.from("contas_receber").insert({
+              venda_id: editVenda.id, cliente_id: Number(editForm.clienteId),
+              descricao: `Venda #${String(editVenda.id).slice(-4)}${cli ? ` — ${cli.nome}` : ""}`,
+              valor: editTotal, forma_pagamento: editForm.forma,
+              data_emissao: editForm.data, data_vencimento: editForm.data, status: "pago", data_pagamento: today(),
+            }).select().single();
+            if (crNovo) setContasReceber(prev => [...prev, crNovo].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento)));
+          }
+        }
       } else if (editSaldoRestante > 0) {
         const vencimento = addDays(editForm.data, Number(editForm.prazo));
         // Reaproveita qualquer cobrança já vinculada a essa venda (mesmo que esteja "pago" — reabrir em vez de duplicar).
